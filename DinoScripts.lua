@@ -7,6 +7,10 @@ local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
+-- Shortcuts for LinoriaLib Flags
+local Toggles = Library.Toggles
+local Options = Library.Options
+
 -- ===================== SERVICES =====================
 local function getSvc(serviceName)
 	local s = game:GetService(serviceName)
@@ -55,7 +59,6 @@ local Window = Library:CreateWindow({
     ShowCustomCursor = true
 })
 
--- Creating Tabs with Icons
 local Tabs = {
 	Info = Window:AddTab("Info", "info"),
 	Player = Window:AddTab("Player", "user"),
@@ -123,7 +126,7 @@ task.spawn(function()
             if res and res.Body then
                 local data = HttpService:JSONDecode(res.Body)
                 if data and data.country then
-                    CountryLabel:SetText("Country: 🌍 " .. data.country)
+                    CountryLabel:SetText("Country: " .. data.country)
                     return
                 end
             end
@@ -246,7 +249,6 @@ PlayerEspBox:AddToggle("ESP_Snapline", { Text = "Snapline", Default = false })
 PlayerEspBox:AddToggle("ESP_Name", { Text = "Name", Default = false })
 PlayerEspBox:AddToggle("ESP_Health", { Text = "Health", Default = false })
 
--- Player ESP Logic Implementation
 local PlayerESP_Data = {}
 
 local function createPlayerESP(player)
@@ -262,11 +264,13 @@ local function createPlayerESP(player)
     }
 
     if Drawing then
-        local line = Drawing.new("Line")
-        line.Thickness = 1.5
-        line.Transparency = 1
-        line.Visible = false
-        espObj.Line = line
+        pcall(function()
+            local line = Drawing.new("Line")
+            line.Thickness = 1.5
+            line.Transparency = 1
+            line.Visible = false
+            espObj.Line = line
+        end)
     end
 
     PlayerESP_Data[player] = espObj
@@ -295,95 +299,96 @@ RunService.RenderStepped:Connect(function()
     local espColor = Options.PlayerESPColor and Options.PlayerESPColor.Value or Color3.fromRGB(255, 50, 50)
 
     for plr, data in pairs(PlayerESP_Data) do
-        local char = plr.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        pcall(function()
+            local char = plr.Character
+            local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Head"))
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
 
-        if mainEnabled and char and hrp and hum and hum.Health > 0 then
-            -- 1. Highlight Handling
-            if not data.Highlight or data.Highlight.Parent ~= char then
-                if data.Highlight then data.Highlight:Destroy() end
-                local hl = Instance.new("Highlight")
-                hl.Name = "PlayerHighlight"
-                hl.FillTransparency = 0.5
-                hl.OutlineTransparency = 0
-                hl.Adornee = char
-                hl.Parent = char
-                data.Highlight = hl
-            end
-            data.Highlight.FillColor = espColor
-            data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            data.Highlight.Enabled = true
+            if mainEnabled and char and hrp and hum and hum.Health > 0 then
+                -- Highlight
+                if not data.Highlight or data.Highlight.Parent ~= char then
+                    if data.Highlight then data.Highlight:Destroy() end
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "PlayerHighlight"
+                    hl.FillTransparency = 0.5
+                    hl.OutlineTransparency = 0
+                    hl.Adornee = char
+                    hl.Parent = char
+                    data.Highlight = hl
+                end
+                data.Highlight.FillColor = espColor
+                data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                data.Highlight.Enabled = true
 
-            -- 2. Name & Health Billboard
-            if not data.Billboard or data.Billboard.Parent ~= hrp then
-                if data.Billboard then data.Billboard:Destroy() end
-                
-                local bb = Instance.new("BillboardGui")
-                bb.Name = "PlayerESP_Text"
-                bb.AlwaysOnTop = true
-                bb.Size = UDim2.new(0, 150, 0, 40)
-                bb.StudsOffset = Vector3.new(0, 3, 0)
-                bb.Adornee = hrp
+                -- Billboard GUI (Name/Health)
+                if not data.Billboard or data.Billboard.Parent ~= hrp then
+                    if data.Billboard then data.Billboard:Destroy() end
+                    
+                    local bb = Instance.new("BillboardGui")
+                    bb.Name = "PlayerESP_Text"
+                    bb.AlwaysOnTop = true
+                    bb.Size = UDim2.new(0, 150, 0, 40)
+                    bb.StudsOffset = Vector3.new(0, 3, 0)
+                    bb.Adornee = hrp
 
-                local frame = Instance.new("Frame", bb)
-                frame.Size = UDim2.new(1, 0, 1, 0)
-                frame.BackgroundTransparency = 1
+                    local frame = Instance.new("Frame", bb)
+                    frame.Size = UDim2.new(1, 0, 1, 0)
+                    frame.BackgroundTransparency = 1
 
-                local layout = Instance.new("UIListLayout", frame)
-                layout.SortOrder = Enum.SortOrder.LayoutOrder
-                layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+                    local layout = Instance.new("UIListLayout", frame)
+                    layout.SortOrder = Enum.SortOrder.LayoutOrder
+                    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
-                local nameL = Instance.new("TextLabel", frame)
-                nameL.Size = UDim2.new(1, 0, 0, 18)
-                nameL.BackgroundTransparency = 1
-                nameL.Font = Enum.Font.SourceSansBold
-                nameL.TextSize = 14
-                nameL.TextStrokeTransparency = 0
+                    local nameL = Instance.new("TextLabel", frame)
+                    nameL.Size = UDim2.new(1, 0, 0, 18)
+                    nameL.BackgroundTransparency = 1
+                    nameL.Font = Enum.Font.SourceSansBold
+                    nameL.TextSize = 14
+                    nameL.TextStrokeTransparency = 0
 
-                local hpL = Instance.new("TextLabel", frame)
-                hpL.Size = UDim2.new(1, 0, 0, 16)
-                hpL.BackgroundTransparency = 1
-                hpL.Font = Enum.Font.SourceSansBold
-                hpL.TextSize = 13
-                hpL.TextColor3 = Color3.fromRGB(100, 255, 100)
-                hpL.TextStrokeTransparency = 0
+                    local hpL = Instance.new("TextLabel", frame)
+                    hpL.Size = UDim2.new(1, 0, 0, 16)
+                    hpL.BackgroundTransparency = 1
+                    hpL.Font = Enum.Font.SourceSansBold
+                    hpL.TextSize = 13
+                    hpL.TextColor3 = Color3.fromRGB(100, 255, 100)
+                    hpL.TextStrokeTransparency = 0
 
-                bb.Parent = hrp
-                data.Billboard = bb
-                data.NameLabel = nameL
-                data.HealthLabel = hpL
-            end
+                    bb.Parent = hrp
+                    data.Billboard = bb
+                    data.NameLabel = nameL
+                    data.HealthLabel = hpL
+                end
 
-            data.NameLabel.Visible = nameEnabled
-            data.NameLabel.Text = plr.DisplayName or plr.Name
-            data.NameLabel.TextColor3 = espColor
+                data.NameLabel.Visible = nameEnabled
+                data.NameLabel.Text = plr.DisplayName or plr.Name
+                data.NameLabel.TextColor3 = espColor
 
-            data.HealthLabel.Visible = hpEnabled
-            data.HealthLabel.Text = string.format("HP: %d/%d", math.floor(hum.Health), math.floor(hum.MaxHealth))
+                data.HealthLabel.Visible = hpEnabled
+                data.HealthLabel.Text = string.format("HP: %d/%d", math.floor(hum.Health), math.floor(hum.MaxHealth))
 
-            -- 3. Snapline
-            if data.Line then
-                if snapEnabled then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    if onScreen then
-                        data.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-                        data.Line.To = Vector2.new(screenPos.X, screenPos.Y)
-                        data.Line.Color = espColor
-                        data.Line.Visible = true
+                -- Snapline
+                if data.Line then
+                    if snapEnabled then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                        if onScreen then
+                            data.Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                            data.Line.To = Vector2.new(screenPos.X, screenPos.Y)
+                            data.Line.Color = espColor
+                            data.Line.Visible = true
+                        else
+                            data.Line.Visible = false
+                        end
                     else
                         data.Line.Visible = false
                     end
-                else
-                    data.Line.Visible = false
                 end
+            else
+                if data.Highlight then data.Highlight.Enabled = false end
+                if data.Billboard then data.Billboard.Parent = nil end
+                if data.Line then data.Line.Visible = false end
             end
-        else
-            -- Cleanup/Hide when off or dead
-            if data.Highlight then data.Highlight.Enabled = false end
-            if data.Billboard then data.Billboard.Parent = nil end
-            if data.Line then data.Line.Visible = false end
-        end
+        end)
     end
 end)
 
@@ -398,25 +403,25 @@ FoodEspBox:AddDropdown("FoodFilter", {
     Text = "Select Food Types"
 })
 
-local function getOrbTypeAndColor(part)
-    if not part:IsA("BasePart") then return nil, nil end
-    local c = part.Color
-    local r, g, b = math.round(c.R * 255), math.round(c.G * 255), math.round(c.B * 255)
+local function getOrbTypeAndColor(item)
+    local part = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
+    if not part then return nil, nil end
 
-    if math.abs(r - 210) <= 20 and math.abs(g - 45) <= 20 and math.abs(b - 60) <= 20 then
+    local c = part.Color
+    local r, g, b = math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5)
+
+    if math.abs(r - 210) <= 30 and math.abs(g - 45) <= 30 and math.abs(b - 60) <= 30 then
         return "Red Orb", Color3.fromRGB(210, 45, 60)
-    elseif math.abs(r - 255) <= 20 and math.abs(g - 200) <= 20 and math.abs(b - 40) <= 20 then
+    elseif math.abs(r - 255) <= 30 and math.abs(g - 200) <= 30 and math.abs(b - 40) <= 30 then
         return "Yellow Orb", Color3.fromRGB(255, 200, 40)
-    elseif math.abs(r - 60) <= 20 and math.abs(g - 170) <= 20 and math.abs(b - 255) <= 20 then
+    elseif math.abs(r - 60) <= 30 and math.abs(g - 170) <= 30 and math.abs(b - 255) <= 30 then
         return "Blue Orb", Color3.fromRGB(60, 170, 255)
     end
     return nil, nil
 end
 
 local function applyFoodESP(item)
-    if not item or not item:IsA("BasePart") then return end
     local orbType, orbColor = getOrbTypeAndColor(item)
-    
     local enabled = Toggles.FoodESP and Toggles.FoodESP.Value
     local selectedTypes = Options.FoodFilter and Options.FoodFilter.Value or {}
 
@@ -424,6 +429,9 @@ local function applyFoodESP(item)
 
     if enabled and orbType and selectedTypes[orbType] then
         if not container then
+            local targetPart = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
+            if not targetPart then return end
+
             container = Instance.new("Folder")
             container.Name = "FoodESPContainer"
             container.Parent = item
@@ -442,7 +450,7 @@ local function applyFoodESP(item)
             bb.AlwaysOnTop = true
             bb.Size = UDim2.new(0, 120, 0, 30)
             bb.StudsOffset = Vector3.new(0, 1.5, 0)
-            bb.Adornee = item
+            bb.Adornee = targetPart
             bb.Parent = container
 
             local label = Instance.new("TextLabel")
@@ -472,18 +480,19 @@ Toggles.FoodESP:OnChanged(updateFoodESP)
 Options.FoodFilter:OnChanged(updateFoodESP)
 
 -- ===================== TAB: HALLOWEEN =====================
-local HalloweenBox = Tabs.Halloween:AddLeftGroupbox("<font color=\"#FF8C00\">Halloween Events</font>")
+local HalloweenBox = Tabs.Halloween:AddLeftGroupbox("Halloween Events")
 
 -- Pumpkin ESP
 local pumpkinEspEnabled = false
 local function applyPumpkinESP(pumpkinModel)
-    if not pumpkinModel or not (pumpkinModel:IsA("Model") or pumpkinModel:IsA("BasePart")) then return end
+    if not pumpkinModel then return end
     if pumpkinModel:FindFirstChild("PumpkinESPContainer") then return end
 
     local targetPart = pumpkinModel:FindFirstChild("HumanoidRootPart") 
         or (pumpkinModel:IsA("Model") and pumpkinModel.PrimaryPart) 
-        or pumpkinModel:FindFirstChildWhichIsA("BasePart") 
-        or pumpkinModel
+        or pumpkinModel:FindFirstChildWhichIsA("BasePart", true) 
+
+    if not targetPart then return end
 
     local container = Instance.new("Folder")
     container.Name = "PumpkinESPContainer"
@@ -495,29 +504,27 @@ local function applyPumpkinESP(pumpkinModel)
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
     highlight.FillTransparency = 0.3
     highlight.OutlineTransparency = 0
-    highlight.Adornee = targetPart
+    highlight.Adornee = pumpkinModel
     highlight.Parent = container
 
-    if targetPart:IsA("BasePart") then
-        local billboard = Instance.new("BillboardGui")
-        billboard.Name = "ESPText"
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 120, 0, 30)
-        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-        billboard.Adornee = targetPart
-        billboard.Parent = container
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESPText"
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 120, 0, 30)
+    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+    billboard.Adornee = targetPart
+    billboard.Parent = container
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = "🎃 Pumpkin"
-        label.TextColor3 = Color3.fromRGB(210, 100, 255)
-        label.TextStrokeTransparency = 0
-        label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-        label.Font = Enum.Font.SourceSansBold
-        label.TextSize = 14
-        label.Parent = billboard
-    end
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "🎃 Pumpkin"
+    label.TextColor3 = Color3.fromRGB(210, 100, 255)
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 14
+    label.Parent = billboard
 end
 
 local function removePumpkinESP(pumpkinModel)
@@ -546,7 +553,7 @@ local function scanAndApplyPumpkins()
 end
 
 HalloweenBox:AddToggle("PumpkinESP", { 
-    Text = "<font color=\"#FF8C00\">Pumpkin ESP</font>", 
+    Text = "Pumpkin ESP", 
     Default = false, 
     Tooltip = "Highlights all Purple Pumpkins" 
 }):OnChanged(function(v) 
@@ -557,10 +564,11 @@ end)
 -- Candy ESP
 local function checkIsCandy(obj)
     if not obj then return false end
-    if obj:IsA("MeshPart") and obj.TextureID == "rbxassetid://134929231564985" then
+    local mesh = obj:IsA("MeshPart") and obj or obj:FindFirstChildWhichIsA("MeshPart", true)
+    if mesh and mesh.TextureID == "rbxassetid://134929231564985" then
         return true
     end
-    local specialMesh = obj:FindFirstChildOfClass("SpecialMesh")
+    local specialMesh = obj:FindFirstChildWhichIsA("SpecialMesh", true)
     if specialMesh and specialMesh.TextureId == "rbxassetid://134929231564985" then
         return true
     end
@@ -574,6 +582,9 @@ local function applyCandyESP(item)
 
     if enabled then
         if not container then
+            local targetPart = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
+            if not targetPart then return end
+
             container = Instance.new("Folder")
             container.Name = "CandyESPContainer"
             container.Parent = item
@@ -589,7 +600,7 @@ local function applyCandyESP(item)
             bb.AlwaysOnTop = true
             bb.Size = UDim2.new(0, 120, 0, 30)
             bb.StudsOffset = Vector3.new(0, 2, 0)
-            bb.Adornee = item
+            bb.Adornee = targetPart
             bb.Parent = container
 
             local label = Instance.new("TextLabel")
@@ -616,15 +627,15 @@ local function updateCandyESP()
 end
 
 HalloweenBox:AddToggle("CandyESP", { 
-    Text = "<font color=\"#FF8C00\">ESP Candy</font>", 
+    Text = "ESP Candy", 
     Default = false, 
     Tooltip = "Highlights Halloween Candies in Workspace.Food" 
 }):OnChanged(updateCandyESP)
 
 -- Halloween Enemies ESP
-local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox("<font color=\"#FF8C00\">Halloween Enemies</font>")
+local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox("Halloween Enemies")
 
-HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = "<font color=\"#FF8C00\">ESP Enemies</font>", Default = false })
+HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = "ESP Enemies", Default = false })
 HalloweenEnemiesBox:AddDropdown("EnemiesFilter", {
     Values = { "Witch", "Bone", "Spider" },
     Default = { "Witch", "Bone", "Spider" },
@@ -639,8 +650,13 @@ local enemyNameMap = {
 }
 
 local function applyEnemyESP(model)
-    if not model or not model:IsA("Model") then return end
+    if not model then return end
     local shortName = enemyNameMap[model.Name]
+    if not shortName then
+        if model.Name:find("Witch") then shortName = "Witch"
+        elseif model.Name:find("Bone") then shortName = "Bone"
+        elseif model.Name:find("Spider") then shortName = "Spider" end
+    end
     if not shortName then return end
 
     local enabled = Toggles.EnemiesESP and Toggles.EnemiesESP.Value
@@ -649,7 +665,7 @@ local function applyEnemyESP(model)
 
     if enabled and selectedEnemies[shortName] then
         if not container then
-            local targetPart = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart")
+            local targetPart = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart", true)
             if not targetPart then return end
 
             container = Instance.new("Folder")
@@ -696,14 +712,16 @@ end
 Toggles.EnemiesESP:OnChanged(updateEnemiesESP)
 Options.EnemiesFilter:OnChanged(updateEnemiesESP)
 
--- Continuous Scanner for Event Objects
+-- Continuous Scanner Thread for Workspace Events
 task.spawn(function()
     while true do
         task.wait(1.5)
-        if pumpkinEspEnabled then scanAndApplyPumpkins() end
-        if Toggles.FoodESP and Toggles.FoodESP.Value then updateFoodESP() end
-        if Toggles.CandyESP and Toggles.CandyESP.Value then updateCandyESP() end
-        if Toggles.EnemiesESP and Toggles.EnemiesESP.Value then updateEnemiesESP() end
+        pcall(function()
+            if pumpkinEspEnabled then scanAndApplyPumpkins() end
+            if Toggles.FoodESP and Toggles.FoodESP.Value then updateFoodESP() end
+            if Toggles.CandyESP and Toggles.CandyESP.Value then updateCandyESP() end
+            if Toggles.EnemiesESP and Toggles.EnemiesESP.Value then updateEnemiesESP() end
+        end)
     end
 end)
 
