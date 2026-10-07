@@ -1321,6 +1321,6 @@ ConfirmBtn.MouseButton1Click:Connect(function()
         executeMainScript()
     else
         StatusLabel.TextColor3 = Color3.fromRGB(231, 76, 60)
-        StatusLabel.Text = "Wrong Key."
+        StatusLabel.Text = "Wrong Key!"
     end
 end)
