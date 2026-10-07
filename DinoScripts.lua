@@ -1,4 +1,25 @@
--- =================================================================
+-- ==========================================
+-- НАЛАШТУВАННЯ КЛЮЧА ТА ВАЙТЛІСТУ
+-- ==========================================
+local ACTUAL_KEY = "SECRET_KEY_123" -- Змінюй цей ключ, коли хочеш скинути всі збережені ключі у гравців
+local DISCORD_LINK = "https://discord.gg/N8VDYjAhSz"
+local SAVE_FILE_NAME = "KeySystem_SavedKey.txt"
+
+-- Вайтліст UserId (їм ключ не потрібен НІКОЛИ)
+local WHITELIST_IDS = {
+    [23990447199] = true,
+    [15610523877] = true,
+    [117343840833] = true,
+}
+
+-- ==========================================
+-- ОСНОВНИЙ СКРИПТ (ВИКОНУЄТЬСЯ ПІСЛЯ ВПИСАННЯ КЛЮЧА)
+-- ==========================================
+local function executeMainScript()
+    print("[Key System] Ключ підтверджено або гравець у вайтлісті. Запуск скрипта...")
+    
+    -- ⬇️ ВСТАВ СВІЙ ОСНОВНИЙ КОД СЮДИ ⬇️
+    -- =================================================================
 -- MY DINO LIFE SCRIPT HUB (LinoriaLib UI) - UPDATED
 -- =================================================================
 
@@ -1128,3 +1149,183 @@ SaveManager:SetFolder('MyDinoLife/Configs')
 
 Library:SetWatermark("My Dino Life | Premium")
 Library:Notify("My Dino Life Loaded Successfully!", 3)
+
+    -- ⬆️ --------------------------- ⬆️
+end
+
+-- ==========================================
+-- ПЕРЕВІРКА ВАЙТЛІСТУ ТА ЗБЕРЕЖЕНОГО КЛЮЧА
+-- ==========================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- 1. Перевірка Вайтлісту
+if WHITELIST_IDS[LocalPlayer.UserId] then
+    executeMainScript()
+    return
+end
+
+-- 2. Перевірка збереженого ключа
+if isfile and readfile and isfile(SAVE_FILE_NAME) then
+    local savedKey = readfile(SAVE_FILE_NAME)
+    if savedKey == ACTUAL_KEY then
+        executeMainScript()
+        return
+    end
+end
+
+-- ==========================================
+-- СТВОРЕННЯ UI (ЯКЩО КЛЮЧ НЕ ПРОЙШОВ)
+-- ==========================================
+local CoreGui = game:GetService("CoreGui")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KeySystemUI"
+ScreenGui.ResetOnSpawn = false
+
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+else
+    ScreenGui.Parent = CoreGui
+end
+
+-- Головна рамка (Перетягується)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -110)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 10)
+FrameCorner.Parent = MainFrame
+
+-- Заголовок
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 0, 40)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Key System"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.Garamond
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+-- Кнопка закриття
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseBtn.TextSize = 18
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = MainFrame
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Поле вводу ключа
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(1, -30, 0, 40)
+KeyInput.Position = UDim2.new(0, 15, 0, 50)
+KeyInput.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+KeyInput.PlaceholderText = "Enter Key Here..."
+KeyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+KeyInput.Text = ""
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.TextSize = 14
+KeyInput.Font = Enum.Font.SourceSans
+KeyInput.ClearTextOnFocus = false
+KeyInput.Parent = MainFrame
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 6)
+InputCorner.Parent = KeyInput
+
+-- Текст статусу
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -30, 0, 25)
+StatusLabel.Position = UDim2.new(0, 15, 0, 95)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = ""
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.SourceSansSemibold
+StatusLabel.Parent = MainFrame
+
+-- Кнопка Confirm (Зелена)
+local ConfirmBtn = Instance.new("TextButton")
+ConfirmBtn.Size = UDim2.new(0.46, 0, 0, 40)
+ConfirmBtn.Position = UDim2.new(0, 15, 0, 130)
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+ConfirmBtn.Text = "Confirm"
+ConfirmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfirmBtn.TextSize = 15
+ConfirmBtn.Font = Enum.Font.SourceSansBold
+ConfirmBtn.Parent = MainFrame
+
+local ConfirmCorner = Instance.new("UICorner")
+ConfirmCorner.CornerRadius = UDim.new(0, 6)
+ConfirmCorner.Parent = ConfirmBtn
+
+-- Кнопка Get Key (Синя)
+local GetKeyBtn = Instance.new("TextButton")
+GetKeyBtn.Size = UDim2.new(0.46, 0, 0, 40)
+GetKeyBtn.Position = UDim2.new(0.54, 0, 0, 130)
+GetKeyBtn.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+GetKeyBtn.Text = "Get Key"
+GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+GetKeyBtn.TextSize = 15
+GetKeyBtn.Font = Enum.Font.SourceSansBold
+GetKeyBtn.Parent = MainFrame
+
+local GetKeyCorner = Instance.new("UICorner")
+GetKeyCorner.CornerRadius = UDim.new(0, 6)
+GetKeyCorner.Parent = GetKeyBtn
+
+-- ==========================================
+-- ЛОГІКА КНОПОК
+-- ==========================================
+
+-- Отримання ключа (копіювання посилання)
+GetKeyBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(DISCORD_LINK)
+    elseif toclipboard then
+        toclipboard(DISCORD_LINK)
+    end
+    
+    StatusLabel.TextColor3 = Color3.fromRGB(52, 152, 219)
+    StatusLabel.Text = "Copied link to clipboard!"
+end)
+
+-- Підтвердження ключа
+ConfirmBtn.MouseButton1Click:Connect(function()
+    local enteredKey = KeyInput.Text
+
+    if enteredKey == ACTUAL_KEY then
+        StatusLabel.TextColor3 = Color3.fromRGB(46, 204, 113)
+        StatusLabel.Text = "Valid Key. Executing..."
+        
+        -- Збереження ключа у файл
+        if writefile then
+            writefile(SAVE_FILE_NAME, ACTUAL_KEY)
+        end
+        
+        task.wait(1.2)
+        ScreenGui:Destroy()
+        executeMainScript()
+    else
+        StatusLabel.TextColor3 = Color3.fromRGB(231, 76, 60)
+        StatusLabel.Text = "Wrong Key."
+    end
+end)
