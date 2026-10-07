@@ -1,15 +1,16 @@
 -- ==========================================
 -- НАЛАШТУВАННЯ КЛЮЧА ТА ВАЙТЛІСТУ
 -- ==========================================
-local ACTUAL_KEY = "release67" -- Змінюй цей ключ, щоб скинути ключі у всіх гравців
+local ACTUAL_KEY = "SECRET_KEY_123" -- Змінюй цей ключ, щоб скинути доступ у всіх користувачів
 local DISCORD_LINK = "https://discord.gg/N8VDYjAhSz"
 local SAVE_FILE_NAME = "MyDinoLife_SavedKey.txt"
 
--- Список UserId гравців, яким не потрібно вводити ключ
+-- Список UserId гравців, які обходять перевірку ключа.
+-- УВАГА: Якщо твій UserId тут є, меню вводу ключа НЕ з'явиться!
 local WHITELIST_IDS = {
-    [23990447199] = true,
-    [15610523877] = true,
-    [117343840833] = true,
+    -- [23990447199] = true,
+    -- [15610523877] = true,
+    -- [117343840833] = true,
 }
 
 -- ==========================================
@@ -17,7 +18,7 @@ local WHITELIST_IDS = {
 -- ==========================================
 local function executeMainScript()
     -- =================================================================
-    -- MY DINO LIFE SCRIPT HUB (LinoriaLib UI) - UPDATED
+    -- MY DINO LIFE SCRIPT HUB (LinoriaLib UI)
     -- =================================================================
 
     local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
@@ -120,7 +121,7 @@ local function executeMainScript()
     local FPSLabel = StatsBox:AddLabel("FPS: Calculating...")
     local PingLabel = StatsBox:AddLabel("Ping: Calculating...")
 
-    -- DRAGGABLE COORDS GUI (Standalone)
+    -- DRAGGABLE COORDS GUI
     local targetParent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
     local CoordsGui = Instance.new("ScreenGui")
     CoordsGui.Name = "MyDinoLife_CoordsGui"
@@ -470,7 +471,6 @@ local function executeMainScript()
     local smoothedSpeed = 0
 
     RunService.Stepped:Connect(function(_, deltaTime)
-        -- NOCLIP LOGIC
         if noclipEnabled then
             local char = LocalPlayer.Character
             if char then
@@ -482,7 +482,6 @@ local function executeMainScript()
             end
         end
 
-        -- FLY LOGIC
         if flyEnabled then
             local char = LocalPlayer.Character
             if not char then return end
@@ -1116,7 +1115,7 @@ local function executeMainScript()
     DiscordBox:AddButton("Copy Discord Link", function()
         local setclip = setclipboard or toclipboard or set_clipboard
         if setclip then
-            setclip("https://discord.gg/N8VDYjAhSz")
+            setclip(DISCORD_LINK)
             Library:Notify("Discord link copied to clipboard!", 3)
         else
             Library:Notify("Your executor doesn't support clipboard copying.", 3)
@@ -1160,6 +1159,7 @@ if WHITELIST_IDS[LocalPlayer.UserId] then
 end
 
 -- 2. Перевірка збереженого ключа
+-- Якщо збережений у файлі ключ збігається з актуальним ACTUAL_KEY, скрипт запускається без UI
 if isfile and readfile and isfile(SAVE_FILE_NAME) then
     local savedKey = readfile(SAVE_FILE_NAME)
     if savedKey == ACTUAL_KEY then
@@ -1186,7 +1186,7 @@ else
     ScreenGui.Parent = CoreGui
 end
 
--- Головна рамка (Рухається)
+-- Головна рамка
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 350, 0, 220)
@@ -1311,7 +1311,7 @@ ConfirmBtn.MouseButton1Click:Connect(function()
         StatusLabel.TextColor3 = Color3.fromRGB(46, 204, 113)
         StatusLabel.Text = "Valid Key. Executing..."
         
-        -- Збереження актуального ключа у файл
+        -- Перезаписуємо файл новим правильним ключем
         if writefile then
             writefile(SAVE_FILE_NAME, ACTUAL_KEY)
         end
@@ -1321,6 +1321,6 @@ ConfirmBtn.MouseButton1Click:Connect(function()
         executeMainScript()
     else
         StatusLabel.TextColor3 = Color3.fromRGB(231, 76, 60)
-        StatusLabel.Text = "Wrong Key!"
+        StatusLabel.Text = "Wrong Key."
     end
 end)
