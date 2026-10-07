@@ -1,5 +1,5 @@
 -- =================================================================
--- MY DINO LIFE SCRIPT HUB (LinoriaLib UI)
+-- MY DINO LIFE SCRIPT HUB (LinoriaLib UI) - UPDATED
 -- =================================================================
 
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
@@ -22,6 +22,7 @@ local RunService = getSvc("RunService")
 local HttpService = getSvc("HttpService")
 local ContentProvider = getSvc("ContentProvider")
 local Workspace = getSvc("Workspace")
+local UserInputService = getSvc("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -100,6 +101,107 @@ local StatsBox = Tabs.Info:AddRightGroupbox("Game Stats")
 local FPSLabel = StatsBox:AddLabel("FPS: Calculating...")
 local PingLabel = StatsBox:AddLabel("Ping: Calculating...")
 
+-- DRAGGABLE COORDS GUI (Standalone)
+local targetParent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+local CoordsGui = Instance.new("ScreenGui")
+CoordsGui.Name = "MyDinoLife_CoordsGui"
+CoordsGui.Parent = targetParent
+CoordsGui.Enabled = false
+
+local CoordsFrame = Instance.new("Frame", CoordsGui)
+CoordsFrame.Size = UDim2.new(0, 220, 0, 80)
+CoordsFrame.Position = UDim2.new(0.5, -110, 0.1, 0)
+CoordsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+CoordsFrame.BorderSizePixel = 0
+Instance.new("UICorner", CoordsFrame).CornerRadius = UDim.new(0, 8)
+
+local Topbar = Instance.new("Frame", CoordsFrame)
+Topbar.Size = UDim2.new(1, 0, 0, 22)
+Topbar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 8)
+
+-- Скриваем нижні кути топбару, щоб виглядав прикріпленим
+local TopbarFix = Instance.new("Frame", Topbar)
+TopbarFix.Size = UDim2.new(1, 0, 0.5, 0)
+TopbarFix.Position = UDim2.new(0, 0, 0.5, 0)
+TopbarFix.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TopbarFix.BorderSizePixel = 0
+
+local TitleLabel = Instance.new("TextLabel", Topbar)
+TitleLabel.Size = UDim2.new(1, -10, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "📍 Live Coordinates"
+TitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 12
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local XYZLabel = Instance.new("TextLabel", CoordsFrame)
+XYZLabel.Size = UDim2.new(1, 0, 0, 25)
+XYZLabel.Position = UDim2.new(0, 0, 0, 25)
+XYZLabel.BackgroundTransparency = 1
+XYZLabel.Text = "X: 0 | Y: 0 | Z: 0"
+XYZLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+XYZLabel.Font = Enum.Font.GothamSemibold
+XYZLabel.TextSize = 13
+
+local CopyBtn = Instance.new("TextButton", CoordsFrame)
+CopyBtn.Size = UDim2.new(0.8, 0, 0, 22)
+CopyBtn.Position = UDim2.new(0.1, 0, 0, 52)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+CopyBtn.Text = "Copy to Clipboard"
+CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CopyBtn.Font = Enum.Font.Gotham
+CopyBtn.TextSize = 12
+Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 4)
+
+-- Logic for Draggable Frame
+local dragging, dragInput, mousePos, framePos
+Topbar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        mousePos = input.Position
+        framePos = CoordsFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+Topbar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        CoordsFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
+
+-- Copy Button Logic
+CopyBtn.MouseButton1Click:Connect(function()
+    local setclip = setclipboard or toclipboard or set_clipboard
+    if setclip then
+        local char = LocalPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local pos = hrp.Position
+            setclip(string.format("%.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z))
+            CopyBtn.Text = "Copied!"
+            CopyBtn.BackgroundColor3 = Color3.fromRGB(80, 200, 80)
+            task.delay(1.5, function() 
+                CopyBtn.Text = "Copy to Clipboard" 
+                CopyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            end)
+        end
+    else
+        CopyBtn.Text = "Executor doesn't support copy"
+        task.delay(1.5, function() CopyBtn.Text = "Copy to Clipboard" end)
+    end
+end)
+
 local ServerBox = Tabs.Info:AddRightGroupbox("Server Info")
 local CountryLabel = ServerBox:AddLabel("Country: Fetching...")
 local AgeLabel = ServerBox:AddLabel("Age: 00m 00s")
@@ -112,11 +214,18 @@ StatsBox:AddToggle("FPSUnlocker", {
     Default = true,
     Tooltip = "Unlocks maximum FPS limit"
 }):OnChanged(function(v)
-    if setfps then
-        setfps(v and 240 or 60)
-    end
+    if setfps then setfps(v and 240 or 60) end
 end)
 if setfps then setfps(240) end
+
+-- Show Coordinates Toggle
+StatsBox:AddToggle("ShowCoordsToggle", {
+    Text = "Show Coordinates",
+    Default = false,
+    Tooltip = "Spawns a draggable panel with your XYZ location"
+}):OnChanged(function(v)
+    CoordsGui.Enabled = v
+end)
 
 task.spawn(function()
     local req = (syn and syn.request) or request or http_request or (fluxus and fluxus.request)
@@ -151,6 +260,7 @@ end)
 -- ===================== TAB: PLAYER =====================
 local speedEnabled = false
 local bonusSpeed = 1.5
+local flyEnabled = false
 
 local MoveBox = Tabs.Player:AddLeftGroupbox("Movement Enhancements")
 
@@ -175,10 +285,68 @@ end)
 
 local SpeedLabel = MoveBox:AddLabel("Studs/s: 0.0")
 
+MoveBox:AddDivider()
+
+-- FLY FEATURE (Mobile + AntiCheat safe)
+MoveBox:AddToggle("FlyToggle", { 
+    Text = "Fly", 
+    Default = false, 
+    Tooltip = "Enable Flight (Compatible with Mobile Joystick)" 
+}):OnChanged(function(v) 
+    flyEnabled = v 
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.PlatformStand = v -- Prevents tripping or attempting to walk on invisible objects
+    end
+end)
+
+MoveBox:AddSlider("FlySpeed", { 
+    Text = "Fly Speed", 
+    Default = 50, 
+    Min = 10, 
+    Max = 200, 
+    Rounding = 0, 
+    Tooltip = "Adjust your flight speed" 
+})
+
 local pauseTimer = 0
 local lastPosition = nil
 local smoothedSpeed = 0
 
+-- Stepped Loop: Best for Fly logic (runs before physics simulate to bypass AC checks)
+RunService.Stepped:Connect(function(_, deltaTime)
+    if flyEnabled then
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        
+        if hum and hrp and hum.Health > 0 then
+            -- Neutralize gravity falling (Bypasses BodyMover AC checks)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+            local moveDir = hum.MoveDirection
+            if moveDir.Magnitude > 0 then
+                local camCFrame = Workspace.CurrentCamera.CFrame
+                
+                -- Translates mobile joystick/WASD input into the exact direction the camera is looking
+                local flatCamLook = Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z).Unit
+                local camRight = camCFrame.RightVector
+                
+                local forwardDot = moveDir:Dot(flatCamLook)
+                local rightDot = moveDir:Dot(camRight)
+                
+                local finalDirection = (camCFrame.LookVector * forwardDot) + (camCFrame.RightVector * rightDot)
+                
+                -- Stealthy CFrame manipulation
+                hrp.CFrame = hrp.CFrame + (finalDirection * (Options.FlySpeed.Value * deltaTime))
+            end
+        end
+    end
+end)
+
+-- Heartbeat Loop: For Speed bypass and UI updating
 RunService.Heartbeat:Connect(function(deltaTime)
     local char = LocalPlayer.Character
     if not char then 
@@ -191,6 +359,13 @@ RunService.Heartbeat:Connect(function(deltaTime)
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     local hrp = char:FindFirstChild("HumanoidRootPart")
 
+    -- UPDATE COORDS GUI
+    if CoordsGui.Enabled and hrp then
+        local p = hrp.Position
+        XYZLabel.Text = string.format("X: %.1f | Y: %.1f | Z: %.1f", p.X, p.Y, p.Z)
+    end
+
+    -- SPEED CALCULATOR
     if hrp and deltaTime > 0 then
         local currentPos = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
         if lastPosition then
@@ -210,7 +385,8 @@ RunService.Heartbeat:Connect(function(deltaTime)
         SpeedLabel:SetText("Studs/s: 0.0")
     end
 
-    if not speedEnabled or not humanoid or not hrp or humanoid.Health <= 0 then return end
+    -- SPEED BYPASS LOGIC (Disabled if flying to avoid conflicts)
+    if flyEnabled or not speedEnabled or not humanoid or not hrp or humanoid.Health <= 0 then return end
     if humanoid.FloorMaterial == Enum.Material.Air then return end
 
     pauseTimer = pauseTimer + deltaTime
@@ -226,9 +402,13 @@ RunService.Heartbeat:Connect(function(deltaTime)
     end
 end)
 
-LocalPlayer.CharacterAdded:Connect(function()
+LocalPlayer.CharacterAdded:Connect(function(char)
     lastPosition = nil
     smoothedSpeed = 0
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and flyEnabled then
+        hum.PlatformStand = true
+    end
 end)
 
 -- ===================== TAB: ESP =====================
