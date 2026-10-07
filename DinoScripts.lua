@@ -1,7 +1,7 @@
 -- ==========================================
 -- НАЛАШТУВАННЯ КЛЮЧА ТА ВАЙТЛІСТУ
 -- ==========================================
-local ACTUAL_KEY = "nigger67" -- Змінюй цей ключ, щоб скинути ключі у всіх гравців
+local ACTUAL_KEY = "release67" -- Змінюй цей ключ, щоб скинути ключі у всіх гравців
 local DISCORD_LINK = "https://discord.gg/N8VDYjAhSz"
 local SAVE_FILE_NAME = "MyDinoLife_SavedKey.txt"
 
