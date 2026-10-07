@@ -1,7 +1,7 @@
 -- ==========================================
 -- НАЛАШТУВАННЯ КЛЮЧА ТА ВАЙТЛІСТУ
 -- ==========================================
-local ACTUAL_KEY = "SECRET_KEY_123" -- Змінюй цей ключ, щоб скинути доступ у всіх користувачів
+local ACTUAL_KEY = "release67" -- Змінюй цей ключ, щоб скинути доступ у всіх користувачів
 local DISCORD_LINK = "https://discord.gg/N8VDYjAhSz"
 local SAVE_FILE_NAME = "MyDinoLife_SavedKey.txt"
 
