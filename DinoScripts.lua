@@ -64,7 +64,8 @@ local Tabs = {
 	Info = Window:AddTab("Info", "info"),
 	Player = Window:AddTab("Player", "user"),
 	Esp = Window:AddTab("ESP", "eye"),
-    Halloween = Window:AddTab("Halloween", "ghost")
+    Halloween = Window:AddTab('<font color="#FFA500">Halloween</font>', "ghost"),
+    Discord = Window:AddTab('<font color="#00BFFF">Discord</font>', "message-circle")
 }
 
 -- ===================== TAB: INFO =====================
@@ -130,7 +131,7 @@ local TitleLabel = Instance.new("TextLabel", Topbar)
 TitleLabel.Size = UDim2.new(1, -10, 1, 0)
 TitleLabel.Position = UDim2.new(0, 10, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "📍 Live Coordinates"
+TitleLabel.Text = "🌍 Live Coordinates"
 TitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 12
@@ -304,7 +305,7 @@ MoveBox:AddSlider("FlySpeed", {
     Tooltip = "Adjust your flight speed" 
 })
 
--- ===================== SURVIVAL & UTILITY (NEW) =====================
+-- ===================== SURVIVAL & UTILITY =====================
 local SurvivalBox = Tabs.Player:AddRightGroupbox("Survival & Utility")
 
 local autoSaveEnabled = false
@@ -352,7 +353,7 @@ local safePlatform = nil
 local SafeZoneGui = Instance.new("ScreenGui")
 SafeZoneGui.Name = "MyDinoLife_SafeZoneGui"
 SafeZoneGui.ResetOnSpawn = false
-SafeZoneGui.Parent = targetParent -- Uses the same safe parent as CoordsGui
+SafeZoneGui.Parent = targetParent 
 
 local LeaveBtn = Instance.new("TextButton", SafeZoneGui)
 LeaveBtn.Size = UDim2.new(0, 160, 0, 45)
@@ -793,8 +794,77 @@ end
 Toggles.FoodESP:OnChanged(updateFoodESP)
 Options.FoodFilter:OnChanged(updateFoodESP)
 
+-- BOSS ESP LOGIC
+local BossEspBox = Tabs.Esp:AddRightGroupbox("Boss ESP Settings")
+
+BossEspBox:AddToggle("BossESP", { Text = "ESP Bosses", Default = false })
+BossEspBox:AddDropdown("BossFilter", {
+    Values = { "Megalodon", "D-Rex" },
+    Default = { "Megalodon", "D-Rex" },
+    Multi = true,
+    Text = "Select Boss"
+})
+
+local function applyBossESP(model, bossName, displayColor)
+    if not model then return end
+    local enabled = Toggles.BossESP and Toggles.BossESP.Value
+    local selectedBosses = Options.BossFilter and Options.BossFilter.Value or {}
+    
+    local container = model:FindFirstChild("BossESPContainer")
+
+    if enabled and selectedBosses[bossName] then
+        if not container then
+            local targetPart = model.PrimaryPart or model:FindFirstChild("HumanoidRootPart") or model:FindFirstChildWhichIsA("BasePart", true)
+            if not targetPart then return end
+
+            container = Instance.new("Folder")
+            container.Name = "BossESPContainer"
+            container.Parent = model
+
+            local hl = Instance.new("Highlight")
+            hl.FillColor = displayColor
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.FillTransparency = 0.3
+            hl.OutlineTransparency = 0
+            hl.Adornee = model
+            hl.Parent = container
+
+            local bb = Instance.new("BillboardGui")
+            bb.AlwaysOnTop = true
+            bb.Size = UDim2.new(0, 150, 0, 30)
+            bb.StudsOffset = Vector3.new(0, 5, 0)
+            bb.Adornee = targetPart
+            bb.Parent = container
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.BackgroundTransparency = 1
+            label.Text = "⚠️ " .. bossName
+            label.TextColor3 = displayColor
+            label.TextStrokeTransparency = 0
+            label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            label.Font = Enum.Font.SourceSansBold
+            label.TextSize = 16
+            label.Parent = bb
+        end
+    else
+        if container then container:Destroy() end
+    end
+end
+
+local function updateBossESP()
+    local megalodon = Workspace:FindFirstChild("MEGALODON")
+    if megalodon then applyBossESP(megalodon, "Megalodon", Color3.fromRGB(0, 150, 255)) end
+
+    local drex = Workspace:FindFirstChild("D-REX")
+    if drex then applyBossESP(drex, "D-Rex", Color3.fromRGB(255, 50, 50)) end
+end
+
+Toggles.BossESP:OnChanged(updateBossESP)
+Options.BossFilter:OnChanged(updateBossESP)
+
 -- ===================== TAB: HALLOWEEN =====================
-local HalloweenBox = Tabs.Halloween:AddLeftGroupbox("Halloween Events")
+local HalloweenBox = Tabs.Halloween:AddLeftGroupbox('<font color="#FFA500">Halloween Events</font>')
 
 local pumpkinEspEnabled = false
 local function applyPumpkinESP(pumpkinModel)
@@ -866,7 +936,7 @@ local function scanAndApplyPumpkins()
 end
 
 HalloweenBox:AddToggle("PumpkinESP", { 
-    Text = "Pumpkin ESP", 
+    Text = '<font color="#FFA500">Pumpkin ESP</font>', 
     Default = false, 
     Tooltip = "Highlights all Purple Pumpkins" 
 }):OnChanged(function(v) 
@@ -939,19 +1009,19 @@ local function updateCandyESP()
 end
 
 HalloweenBox:AddToggle("CandyESP", { 
-    Text = "ESP Candy", 
+    Text = '<font color="#FFA500">ESP Candy</font>', 
     Default = false, 
     Tooltip = "Highlights Halloween Candies in Workspace.Food" 
 }):OnChanged(updateCandyESP)
 
-local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox("Halloween Enemies")
+local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox('<font color="#FFA500">Halloween Enemies</font>')
 
-HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = "ESP Enemies", Default = false })
+HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = '<font color="#FFA500">ESP Enemies</font>', Default = false })
 HalloweenEnemiesBox:AddDropdown("EnemiesFilter", {
     Values = { "Witch", "Bone", "Spider" },
     Default = { "Witch", "Bone", "Spider" },
     Multi = true,
-    Text = "Select Enemies"
+    Text = '<font color="#FFA500">Select Enemies</font>'
 })
 
 local enemyNameMap = {
@@ -1023,6 +1093,20 @@ end
 Toggles.EnemiesESP:OnChanged(updateEnemiesESP)
 Options.EnemiesFilter:OnChanged(updateEnemiesESP)
 
+-- ===================== TAB: DISCORD =====================
+local DiscordBox = Tabs.Discord:AddLeftGroupbox('<font color="#00BFFF">Join Community</font>')
+
+DiscordBox:AddButton("Copy Discord Link", function()
+    local setclip = setclipboard or toclipboard or set_clipboard
+    if setclip then
+        setclip("https://discord.gg/N8VDYjAhSz")
+        Library:Notify("Discord link copied to clipboard!", 3)
+    else
+        Library:Notify("Your executor doesn't support clipboard copying.", 3)
+    end
+end)
+
+-- MAIN LOOP
 task.spawn(function()
     while true do
         task.wait(1.5)
@@ -1031,6 +1115,7 @@ task.spawn(function()
             if Toggles.FoodESP and Toggles.FoodESP.Value then updateFoodESP() end
             if Toggles.CandyESP and Toggles.CandyESP.Value then updateCandyESP() end
             if Toggles.EnemiesESP and Toggles.EnemiesESP.Value then updateEnemiesESP() end
+            if Toggles.BossESP and Toggles.BossESP.Value then updateBossESP() end
         end)
     end
 end)
