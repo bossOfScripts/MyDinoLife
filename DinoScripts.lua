@@ -120,7 +120,6 @@ Topbar.Size = UDim2.new(1, 0, 0, 22)
 Topbar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 8)
 
--- Скриваем нижні кути топбару, щоб виглядав прикріпленим
 local TopbarFix = Instance.new("Frame", Topbar)
 TopbarFix.Size = UDim2.new(1, 0, 0.5, 0)
 TopbarFix.Position = UDim2.new(0, 0, 0.5, 0)
@@ -156,7 +155,6 @@ CopyBtn.Font = Enum.Font.Gotham
 CopyBtn.TextSize = 12
 Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 4)
 
--- Logic for Draggable Frame
 local dragging, dragInput, mousePos, framePos
 Topbar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -180,7 +178,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Copy Button Logic
 CopyBtn.MouseButton1Click:Connect(function()
     local setclip = setclipboard or toclipboard or set_clipboard
     if setclip then
@@ -207,7 +204,6 @@ local CountryLabel = ServerBox:AddLabel("Country: Fetching...")
 local AgeLabel = ServerBox:AddLabel("Age: 00m 00s")
 local PlayersLabel = ServerBox:AddLabel("Players: 0/0")
 
--- FPS Unlocker Toggle
 local setfps = setfpscap or set_fps_cap
 StatsBox:AddToggle("FPSUnlocker", {
     Text = "FPS Unlocker",
@@ -218,7 +214,6 @@ StatsBox:AddToggle("FPSUnlocker", {
 end)
 if setfps then setfps(240) end
 
--- Show Coordinates Toggle
 StatsBox:AddToggle("ShowCoordsToggle", {
     Text = "Show Coordinates",
     Default = false,
@@ -287,7 +282,6 @@ local SpeedLabel = MoveBox:AddLabel("Studs/s: 0.0")
 
 MoveBox:AddDivider()
 
--- FLY FEATURE (Mobile + AntiCheat safe)
 MoveBox:AddToggle("FlyToggle", { 
     Text = "Fly", 
     Default = false, 
@@ -297,7 +291,7 @@ MoveBox:AddToggle("FlyToggle", {
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     if hum then
-        hum.PlatformStand = v -- Prevents tripping or attempting to walk on invisible objects
+        hum.PlatformStand = v
     end
 end)
 
@@ -310,12 +304,167 @@ MoveBox:AddSlider("FlySpeed", {
     Tooltip = "Adjust your flight speed" 
 })
 
+-- ===================== SURVIVAL & UTILITY (NEW) =====================
+local SurvivalBox = Tabs.Player:AddRightGroupbox("Survival & Utility")
+
+local autoSaveEnabled = false
+local autoSaveThreshold = 30
+local noclipEnabled = false
+
+SurvivalBox:AddToggle("AutoSaveToggle", {
+    Text = "Auto Save",
+    Default = false,
+    Tooltip = "Teleports to safe zone when HP is low"
+}):OnChanged(function(v)
+    autoSaveEnabled = v
+end)
+
+SurvivalBox:AddSlider("AutoSaveThreshold", {
+    Text = "If HP bellow:",
+    Default = 30,
+    Min = 10,
+    Max = 50,
+    Rounding = 0,
+    Tooltip = "HP threshold to trigger Auto Save"
+}):OnChanged(function(v)
+    autoSaveThreshold = v
+end)
+
+SurvivalBox:AddDivider()
+
+SurvivalBox:AddToggle("NoclipToggle", {
+    Text = "Noclip",
+    Default = false,
+    Tooltip = "Walk through walls (Undetected)"
+}):OnChanged(function(v)
+    noclipEnabled = v
+end)
+
+-- AUTO SAVE GUI & LOGIC
+local safeZonePos = Vector3.new(-740.4, 46.0, -54.0)
+local safeZoneCFrame = CFrame.new(safeZonePos)
+local platformPos = Vector3.new(-740.4, 43.0, -54.0)
+local leaveCFrame = CFrame.new(-615.0, 41.4, -52.8)
+
+local inSafeZone = false
+local safePlatform = nil
+
+local SafeZoneGui = Instance.new("ScreenGui")
+SafeZoneGui.Name = "MyDinoLife_SafeZoneGui"
+SafeZoneGui.ResetOnSpawn = false
+SafeZoneGui.Parent = targetParent -- Uses the same safe parent as CoordsGui
+
+local LeaveBtn = Instance.new("TextButton", SafeZoneGui)
+LeaveBtn.Size = UDim2.new(0, 160, 0, 45)
+LeaveBtn.Position = UDim2.new(0.5, -80, 0.05, 0)
+LeaveBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+LeaveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LeaveBtn.Font = Enum.Font.GothamBold
+LeaveBtn.TextSize = 16
+LeaveBtn.Text = "Leave Safe Zone"
+LeaveBtn.Visible = false
+Instance.new("UICorner", LeaveBtn).CornerRadius = UDim.new(0, 8)
+
+local NotifText = Instance.new("TextLabel", SafeZoneGui)
+NotifText.Size = UDim2.new(0, 300, 0, 50)
+NotifText.Position = UDim2.new(0.5, -150, 0.65, 0)
+NotifText.BackgroundTransparency = 1
+NotifText.Text = "Auto Save is OFF!"
+NotifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+NotifText.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+NotifText.TextStrokeTransparency = 0
+NotifText.Font = Enum.Font.GothamBlack
+NotifText.TextScaled = true
+NotifText.Visible = false
+
+local function managePlatform(create)
+    if create then
+        if not safePlatform or not safePlatform.Parent then
+            safePlatform = Instance.new("Part")
+            safePlatform.Name = "AutoSavePlatform"
+            safePlatform.Size = Vector3.new(150, 5, 150)
+            safePlatform.Position = platformPos
+            safePlatform.Anchored = true
+            safePlatform.CanCollide = true
+            safePlatform.Transparency = 0.5
+            safePlatform.BrickColor = BrickColor.new("Bright blue")
+            safePlatform.Material = Enum.Material.SmoothPlastic
+            safePlatform.Parent = Workspace
+        end
+    else
+        if safePlatform then
+            safePlatform:Destroy()
+            safePlatform = nil
+        end
+    end
+end
+
+LeaveBtn.MouseButton1Click:Connect(function()
+    inSafeZone = false
+    LeaveBtn.Visible = false
+    managePlatform(false)
+    
+    if Toggles.AutoSaveToggle then
+        Toggles.AutoSaveToggle:SetValue(false)
+    end
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.CFrame = leaveCFrame
+    end
+    
+    NotifText.Visible = true
+    task.delay(3, function() NotifText.Visible = false end)
+end)
+
+RunService.Heartbeat:Connect(function()
+    if autoSaveEnabled then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if hum and hrp and hum.Health > 0 then
+            if not inSafeZone and hum.Health < autoSaveThreshold then
+                inSafeZone = true
+                managePlatform(true)
+                hrp.CFrame = safeZoneCFrame
+                LeaveBtn.Visible = true
+            elseif inSafeZone then
+                local dist = (hrp.Position - safeZonePos).Magnitude
+                if dist > 120 then
+                    hrp.CFrame = safeZoneCFrame
+                end
+            end
+        end
+    else
+        if inSafeZone then
+            inSafeZone = false
+            LeaveBtn.Visible = false
+            managePlatform(false)
+        end
+    end
+end)
+-- ====================================================================
+
 local pauseTimer = 0
 local lastPosition = nil
 local smoothedSpeed = 0
 
--- Stepped Loop: Best for Fly logic (runs before physics simulate to bypass AC checks)
 RunService.Stepped:Connect(function(_, deltaTime)
+    -- NOCLIP LOGIC (Stealthy)
+    if noclipEnabled then
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+
+    -- FLY LOGIC
     if flyEnabled then
         local char = LocalPlayer.Character
         if not char then return end
@@ -323,30 +472,22 @@ RunService.Stepped:Connect(function(_, deltaTime)
         local hrp = char:FindFirstChild("HumanoidRootPart")
         
         if hum and hrp and hum.Health > 0 then
-            -- Neutralize gravity falling (Bypasses BodyMover AC checks)
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
 
             local moveDir = hum.MoveDirection
             if moveDir.Magnitude > 0 then
                 local camCFrame = Workspace.CurrentCamera.CFrame
-                
-                -- Translates mobile joystick/WASD input into the exact direction the camera is looking
                 local flatCamLook = Vector3.new(camCFrame.LookVector.X, 0, camCFrame.LookVector.Z).Unit
                 local camRight = camCFrame.RightVector
-                
                 local forwardDot = moveDir:Dot(flatCamLook)
                 local rightDot = moveDir:Dot(camRight)
-                
                 local finalDirection = (camCFrame.LookVector * forwardDot) + (camCFrame.RightVector * rightDot)
-                
-                -- Stealthy CFrame manipulation
                 hrp.CFrame = hrp.CFrame + (finalDirection * (Options.FlySpeed.Value * deltaTime))
             end
         end
     end
 end)
 
--- Heartbeat Loop: For Speed bypass and UI updating
 RunService.Heartbeat:Connect(function(deltaTime)
     local char = LocalPlayer.Character
     if not char then 
@@ -359,13 +500,11 @@ RunService.Heartbeat:Connect(function(deltaTime)
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     local hrp = char:FindFirstChild("HumanoidRootPart")
 
-    -- UPDATE COORDS GUI
     if CoordsGui.Enabled and hrp then
         local p = hrp.Position
         XYZLabel.Text = string.format("X: %.1f | Y: %.1f | Z: %.1f", p.X, p.Y, p.Z)
     end
 
-    -- SPEED CALCULATOR
     if hrp and deltaTime > 0 then
         local currentPos = Vector3.new(hrp.Position.X, 0, hrp.Position.Z)
         if lastPosition then
@@ -385,7 +524,6 @@ RunService.Heartbeat:Connect(function(deltaTime)
         SpeedLabel:SetText("Studs/s: 0.0")
     end
 
-    -- SPEED BYPASS LOGIC (Disabled if flying to avoid conflicts)
     if flyEnabled or not speedEnabled or not humanoid or not hrp or humanoid.Health <= 0 then return end
     if humanoid.FloorMaterial == Enum.Material.Air then return end
 
@@ -485,7 +623,6 @@ RunService.RenderStepped:Connect(function()
             local hum = char and char:FindFirstChildOfClass("Humanoid")
 
             if mainEnabled and char and hrp and hum and hum.Health > 0 then
-                -- Highlight
                 if not data.Highlight or data.Highlight.Parent ~= char then
                     if data.Highlight then data.Highlight:Destroy() end
                     local hl = Instance.new("Highlight")
@@ -500,7 +637,6 @@ RunService.RenderStepped:Connect(function()
                 data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                 data.Highlight.Enabled = true
 
-                -- Billboard GUI (Name/Health)
                 if not data.Billboard or data.Billboard.Parent ~= hrp then
                     if data.Billboard then data.Billboard:Destroy() end
                     
@@ -547,7 +683,6 @@ RunService.RenderStepped:Connect(function()
                 data.HealthLabel.Visible = hpEnabled
                 data.HealthLabel.Text = string.format("HP: %d/%d", math.floor(hum.Health), math.floor(hum.MaxHealth))
 
-                -- Snapline
                 if data.Line then
                     if snapEnabled then
                         local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
@@ -572,7 +707,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Food ESP Section
 local FoodEspBox = Tabs.Esp:AddRightGroupbox("Food ESP Settings")
 
 FoodEspBox:AddToggle("FoodESP", { Text = "ESP Food", Default = false })
@@ -662,7 +796,6 @@ Options.FoodFilter:OnChanged(updateFoodESP)
 -- ===================== TAB: HALLOWEEN =====================
 local HalloweenBox = Tabs.Halloween:AddLeftGroupbox("Halloween Events")
 
--- Pumpkin ESP
 local pumpkinEspEnabled = false
 local function applyPumpkinESP(pumpkinModel)
     if not pumpkinModel then return end
@@ -741,7 +874,6 @@ HalloweenBox:AddToggle("PumpkinESP", {
     scanAndApplyPumpkins()
 end)
 
--- Candy ESP
 local function checkIsCandy(obj)
     if not obj then return false end
     local mesh = obj:IsA("MeshPart") and obj or obj:FindFirstChildWhichIsA("MeshPart", true)
@@ -812,7 +944,6 @@ HalloweenBox:AddToggle("CandyESP", {
     Tooltip = "Highlights Halloween Candies in Workspace.Food" 
 }):OnChanged(updateCandyESP)
 
--- Halloween Enemies ESP
 local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox("Halloween Enemies")
 
 HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = "ESP Enemies", Default = false })
@@ -892,7 +1023,6 @@ end
 Toggles.EnemiesESP:OnChanged(updateEnemiesESP)
 Options.EnemiesFilter:OnChanged(updateEnemiesESP)
 
--- Continuous Scanner Thread for Workspace Events
 task.spawn(function()
     while true do
         task.wait(1.5)
