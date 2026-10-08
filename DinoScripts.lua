@@ -14,9 +14,9 @@ local KeyFileName = "MyDinoLife_SavedKey.txt"
 
 -- Список ID гравців, яким НІКОЛИ не потрібно вводити ключ:
 local WhitelistedIDs = {
-    [23990447199] = true,
-    [15610523877] = true,
-    [117343840833] = true
+    [2399044719] = true,
+    [1561052387] = true,
+    [11734384083] = true
 }
 
 -- ===================== MAIN SCRIPT FUNCTION =====================
