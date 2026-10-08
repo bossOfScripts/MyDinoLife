@@ -1,49 +1,120 @@
 -- =================================================================
--- MY DINO LIFE SCRIPT HUB WITH KEY SYSTEM
+-- MY DINO LIFE SCRIPT HUB WITH KEY SYSTEM & PLACE ID CHECK
 -- =================================================================
 
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- ===================== PLACE ID CHECK =====================
+local TargetPlaceId = 1791453127087 -- ВСТАВТЕ СЮДИ ЧИСЛОВИЙ ID ПЛЕЙСА
+local DiscordLink = "https://discord.gg/N8VDYjAhSz"
+
+if game.PlaceId ~= TargetPlaceId then
+    local parentGui = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
+    
+    local UnsuppGui = Instance.new("ScreenGui")
+    UnsuppGui.Name = "MyDinoLife_Unsupported"
+    UnsuppGui.ResetOnSpawn = false
+    UnsuppGui.Parent = parentGui
+
+    local MainFrame = Instance.new("Frame", UnsuppGui)
+    MainFrame.Size = UDim2.new(0, 340, 0, 180)
+    MainFrame.Position = UDim2.new(0.5, -170, 0.5, -90)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    MainFrame.BorderSizePixel = 0
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+    local Stroke = Instance.new("UIStroke", MainFrame)
+    Stroke.Color = Color3.fromRGB(220, 50, 50)
+    Stroke.Thickness = 1.5
+
+    local Title = Instance.new("TextLabel", MainFrame)
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.Position = UDim2.new(0, 0, 0.1, 0)
+    Title.BackgroundTransparency = 1
+    Title.Text = "Unsupported Game"
+    Title.TextColor3 = Color3.fromRGB(255, 80, 80)
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 20
+
+    local CopyBtn = Instance.new("TextButton", MainFrame)
+    CopyBtn.Size = UDim2.new(0.8, 0, 0, 40)
+    CopyBtn.Position = UDim2.new(0.1, 0, 0.45, 0)
+    CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255) -- Синя кнопка
+    CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CopyBtn.Font = Enum.Font.GothamBold
+    CopyBtn.TextSize = 14
+    CopyBtn.Text = "Copy Discord Link"
+    Instance.new("UICorner", CopyBtn).CornerRadius = UDim.new(0, 8)
+
+    local CloseBtn = Instance.new("TextButton", MainFrame)
+    CloseBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    CloseBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    CloseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 13
+    CloseBtn.Text = "Close"
+    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+
+    CopyBtn.MouseButton1Click:Connect(function()
+        local setclip = setclipboard or toclipboard or set_clipboard
+        if setclip then
+            setclip(DiscordLink)
+            CopyBtn.Text = "Copied!"
+            task.delay(1.5, function()
+                CopyBtn.Text = "Copy Discord Link"
+            end)
+        else
+            CopyBtn.Text = "Executor not supported"
+        end
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        UnsuppGui:Destroy()
+    end)
+
+    return
+end
+
+-- =================================================================
+-- MAIN SCRIPT (ПОВНИЙ КОД СХОВИЩА)
+-- =================================================================
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
 
--- ===================== KEY SYSTEM CONFIG =====================
-local CorrectKey = "release67" -- ВСТАВТЕ СЮДИ ВАШ АКТУАЛЬНИЙ КЛЮЧ
-local DiscordLink = "https://discord.gg/N8VDYjAhSz"
+local CorrectKey = "release" 
 local KeyFileName = "MyDinoLife_SavedKey.txt"
 
--- Список ID гравців, яким НІКОЛИ не потрібно вводити ключ:
 local WhitelistedIDs = {
     [2399044719] = true,
     [15610523877] = true,
     [117343840833] = true
 }
 
--- ===================== MAIN SCRIPT FUNCTION =====================
 local function LoadMainScript()
     local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
     local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
     local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
     local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
-    -- Shortcuts for LinoriaLib Flags
     local Toggles = Library.Toggles
     local Options = Library.Options
 
-    -- ===================== SERVICES =====================
     local function getSvc(serviceName)
         local s = game:GetService(serviceName)
         return (cloneref and cloneref(s)) or s
     end
 
     local RunService = getSvc("RunService")
-    local HttpService = getSvc("HttpService")
     local ContentProvider = getSvc("ContentProvider")
     local Workspace = getSvc("Workspace")
-
     local Camera = Workspace.CurrentCamera
 
-    -- ===================== INFO TAB LOGIC =====================
     local ExecCount = 1
     pcall(function()
         if isfile and readfile and writefile then
@@ -68,7 +139,6 @@ local function LoadMainScript()
         return str
     end
 
-    -- ===================== UI SETUP =====================
     local Window = Library:CreateWindow({
         Title = "My Dino Life",
         Center = true,
@@ -84,7 +154,6 @@ local function LoadMainScript()
         Discord = Window:AddTab('<font color="#00BFFF">Discord</font>', "message-circle")
     }
 
-    -- ===================== TAB: INFO =====================
     local UserBox = Tabs.Info:AddLeftGroupbox("User Profile")
     local AvatarContainer = Instance.new("Frame", UserBox.Container)
     AvatarContainer.Size = UDim2.new(1, 0, 0, 200)
@@ -118,7 +187,6 @@ local function LoadMainScript()
     local FPSLabel = StatsBox:AddLabel("FPS: Calculating...")
     local PingLabel = StatsBox:AddLabel("Ping: Calculating...")
 
-    -- DRAGGABLE COORDS GUI (Standalone)
     local targetParent = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
     local CoordsGui = Instance.new("ScreenGui")
     CoordsGui.Name = "MyDinoLife_CoordsGui"
@@ -269,7 +337,6 @@ local function LoadMainScript()
         end
     end)
 
-    -- ===================== TAB: PLAYER =====================
     local speedEnabled = false
     local bonusSpeed = 1.5
     local flyEnabled = false
@@ -321,7 +388,6 @@ local function LoadMainScript()
         Tooltip = "Adjust your flight speed" 
     })
 
-    -- ===================== SURVIVAL & UTILITY =====================
     local SurvivalBox = Tabs.Player:AddRightGroupbox("Survival & Utility")
 
     local autoSaveEnabled = false
@@ -357,7 +423,6 @@ local function LoadMainScript()
         noclipEnabled = v
     end)
 
-    -- AUTO SAVE GUI & LOGIC
     local safeZonePos = Vector3.new(-740.4, 46.0, -54.0)
     local safeZoneCFrame = CFrame.new(safeZonePos)
     local platformPos = Vector3.new(-740.4, 43.0, -54.0)
@@ -563,9 +628,7 @@ local function LoadMainScript()
         end
     end)
 
-    -- ===================== TAB: ESP =====================
     local PlayerEspBox = Tabs.Esp:AddLeftGroupbox("Player ESP Settings")
-
     local playerEspToggle = PlayerEspBox:AddToggle("PlayerESP", {
         Text = "ESP Players",
         Default = false,
@@ -585,16 +648,7 @@ local function LoadMainScript()
 
     local function createPlayerESP(player)
         if player == LocalPlayer then return end
-        
-        local espObj = {
-            Player = player,
-            Highlight = nil,
-            Billboard = nil,
-            NameLabel = nil,
-            HealthLabel = nil,
-            Line = nil
-        }
-
+        local espObj = { Player = player, Highlight = nil, Billboard = nil, NameLabel = nil, HealthLabel = nil, Line = nil }
         if Drawing then
             pcall(function()
                 local line = Drawing.new("Line")
@@ -604,18 +658,15 @@ local function LoadMainScript()
                 espObj.Line = line
             end)
         end
-
         PlayerESP_Data[player] = espObj
     end
 
     local function removePlayerESP(player)
         local espObj = PlayerESP_Data[player]
         if not espObj then return end
-
         if espObj.Highlight then espObj.Highlight:Destroy() end
         if espObj.Billboard then espObj.Billboard:Destroy() end
         if espObj.Line then pcall(function() espObj.Line:Remove() end) end
-
         PlayerESP_Data[player] = nil
     end
 
@@ -653,7 +704,6 @@ local function LoadMainScript()
 
                     if not data.Billboard or data.Billboard.Parent ~= hrp then
                         if data.Billboard then data.Billboard:Destroy() end
-                        
                         local bb = Instance.new("BillboardGui")
                         bb.Name = "PlayerESP_Text"
                         bb.AlwaysOnTop = true
@@ -722,7 +772,6 @@ local function LoadMainScript()
     end)
 
     local FoodEspBox = Tabs.Esp:AddRightGroupbox("Food ESP Settings")
-
     FoodEspBox:AddToggle("FoodESP", { Text = "ESP Food", Default = false })
     FoodEspBox:AddDropdown("FoodFilter", {
         Values = { "Red Orb", "Yellow Orb", "Blue Orb" },
@@ -734,7 +783,6 @@ local function LoadMainScript()
     local function getOrbTypeAndColor(item)
         local part = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
         if not part then return nil, nil end
-
         local c = part.Color
         local r, g, b = math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5)
 
@@ -752,7 +800,6 @@ local function LoadMainScript()
         local orbType, orbColor = getOrbTypeAndColor(item)
         local enabled = Toggles.FoodESP and Toggles.FoodESP.Value
         local selectedTypes = Options.FoodFilter and Options.FoodFilter.Value or {}
-
         local container = item:FindFirstChild("FoodESPContainer")
 
         if enabled and orbType and selectedTypes[orbType] then
@@ -807,9 +854,7 @@ local function LoadMainScript()
     Toggles.FoodESP:OnChanged(updateFoodESP)
     Options.FoodFilter:OnChanged(updateFoodESP)
 
-    -- BOSS ESP LOGIC
     local BossEspBox = Tabs.Esp:AddRightGroupbox("Boss ESP Settings")
-
     BossEspBox:AddToggle("BossESP", { Text = "ESP Bosses", Default = false })
     BossEspBox:AddDropdown("BossFilter", {
         Values = { "Megalodon", "D-Rex" },
@@ -822,7 +867,6 @@ local function LoadMainScript()
         if not model then return end
         local enabled = Toggles.BossESP and Toggles.BossESP.Value
         local selectedBosses = Options.BossFilter and Options.BossFilter.Value or {}
-        
         local container = model:FindFirstChild("BossESPContainer")
 
         if enabled and selectedBosses[bossName] then
@@ -876,10 +920,9 @@ local function LoadMainScript()
     Toggles.BossESP:OnChanged(updateBossESP)
     Options.BossFilter:OnChanged(updateBossESP)
 
-    -- ===================== TAB: HALLOWEEN =====================
     local HalloweenBox = Tabs.Halloween:AddLeftGroupbox('<font color="#FFA500">Halloween Events</font>')
-
     local pumpkinEspEnabled = false
+
     local function applyPumpkinESP(pumpkinModel)
         if not pumpkinModel then return end
         if pumpkinModel:FindFirstChild("PumpkinESPContainer") then return end
@@ -1028,7 +1071,6 @@ local function LoadMainScript()
     }):OnChanged(updateCandyESP)
 
     local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox('<font color="#FFA500">Halloween Enemies</font>')
-
     HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = '<font color="#FFA500">ESP Enemies</font>', Default = false })
     HalloweenEnemiesBox:AddDropdown("EnemiesFilter", {
         Values = { "Witch", "Bone", "Spider" },
@@ -1106,9 +1148,7 @@ local function LoadMainScript()
     Toggles.EnemiesESP:OnChanged(updateEnemiesESP)
     Options.EnemiesFilter:OnChanged(updateEnemiesESP)
 
-    -- ===================== TAB: DISCORD =====================
     local DiscordBox = Tabs.Discord:AddLeftGroupbox('<font color="#00BFFF">Join Community</font>')
-
     DiscordBox:AddButton("Copy Discord Link", function()
         local setclip = setclipboard or toclipboard or set_clipboard
         if setclip then
@@ -1119,7 +1159,6 @@ local function LoadMainScript()
         end
     end)
 
-    -- MAIN LOOP
     task.spawn(function()
         while true do
             task.wait(1.5)
@@ -1133,7 +1172,6 @@ local function LoadMainScript()
         end
     end)
 
-    -- ===================== UI INITIALIZATION =====================
     ThemeManager:SetLibrary(Library)
     SaveManager:SetLibrary(Library)
     ThemeManager:SetFolder('MyDinoLife')
@@ -1143,26 +1181,20 @@ local function LoadMainScript()
     Library:Notify("My Dino Life Loaded Successfully!", 3)
 end
 
--- ===================== CHECK KEY / WHITELIST LOGIC =====================
 local isWhitelisted = WhitelistedIDs[LocalPlayer.UserId] == true
-
 if isWhitelisted then
     LoadMainScript()
     return
 end
 
 local isSavedKeyValid = false
-
 pcall(function()
     if isfile and readfile and isfile(KeyFileName) then
         local saved = readfile(KeyFileName)
-
         if saved and saved == CorrectKey then
             isSavedKeyValid = true
         else
-            if delfile then
-                delfile(KeyFileName)
-            end
+            if delfile then delfile(KeyFileName) end
         end
     end
 end)
@@ -1172,7 +1204,6 @@ if isSavedKeyValid then
     return
 end
 
--- ===================== KEY GUI CREATION =====================
 local parentGui = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
 
 local KeyGui = Instance.new("ScreenGui")
@@ -1194,7 +1225,6 @@ MainStroke.Color = Color3.fromRGB(60, 60, 80)
 MainStroke.Thickness = 1.5
 MainStroke.Transparency = 1
 
--- TOPBAR (DRAGGABLE)
 local Topbar = Instance.new("Frame", MainFrame)
 Topbar.Size = UDim2.new(1, 0, 0, 35)
 Topbar.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
@@ -1230,7 +1260,6 @@ CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255,
 CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180) end)
 CloseBtn.MouseButton1Click:Connect(function() KeyGui:Destroy() end)
 
--- DRAGGING LOGIC
 local dragging, dragInput, mousePos, framePos
 Topbar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -1254,7 +1283,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- INPUT BOX
 local KeyInput = Instance.new("TextBox", MainFrame)
 KeyInput.Size = UDim2.new(0.88, 0, 0, 42)
 KeyInput.Position = UDim2.new(0.06, 0, 0.25, 0)
@@ -1272,7 +1300,6 @@ local InputStroke = Instance.new("UIStroke", KeyInput)
 InputStroke.Color = Color3.fromRGB(50, 50, 65)
 InputStroke.Thickness = 1
 
--- STATUS LABEL
 local StatusLabel = Instance.new("TextLabel", MainFrame)
 StatusLabel.Size = UDim2.new(0.88, 0, 0, 22)
 StatusLabel.Position = UDim2.new(0.06, 0, 0.48, 0)
@@ -1281,11 +1308,10 @@ StatusLabel.Text = ""
 StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 12
 
--- BUTTONS CONTAINER
 local ConfirmBtn = Instance.new("TextButton", MainFrame)
 ConfirmBtn.Size = UDim2.new(0.42, 0, 0, 38)
 ConfirmBtn.Position = UDim2.new(0.06, 0, 0.68, 0)
-ConfirmBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69) -- Green
+ConfirmBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
 ConfirmBtn.Text = "Confirm"
 ConfirmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ConfirmBtn.Font = Enum.Font.GothamBold
@@ -1295,21 +1321,19 @@ Instance.new("UICorner", ConfirmBtn).CornerRadius = UDim.new(0, 8)
 local GetKeyBtn = Instance.new("TextButton", MainFrame)
 GetKeyBtn.Size = UDim2.new(0.42, 0, 0, 38)
 GetKeyBtn.Position = UDim2.new(0.52, 0, 0.68, 0)
-GetKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255) -- Blue
+GetKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
 GetKeyBtn.Text = "Get Key"
 GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 GetKeyBtn.Font = Enum.Font.GothamBold
 GetKeyBtn.TextSize = 13
 Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 8)
 
--- ANIMATED OPENING
 TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
     BackgroundTransparency = 0,
     Position = UDim2.new(0.5, -180, 0.5, -120)
 }):Play()
 TweenService:Create(MainStroke, TweenInfo.new(0.4), {Transparency = 0}):Play()
 
--- BUTTON HANDLERS
 GetKeyBtn.MouseButton1Click:Connect(function()
     local setclip = setclipboard or toclipboard or set_clipboard
     if setclip then
