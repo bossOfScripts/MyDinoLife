@@ -9,7 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 -- ===================== PLACE ID CHECK =====================
-local TargetPlaceId = 1791453127087 -- ВСТАВТЕ СЮДИ ЧИСЛОВИЙ ID ПЛЕЙСА
+local TargetPlaceId = 129692563688057 -- ВСТАВТЕ СЮДИ ЧИСЛОВИЙ ID ПЛЕЙСА
 local DiscordLink = "https://discord.gg/N8VDYjAhSz"
 
 if game.PlaceId ~= TargetPlaceId then
