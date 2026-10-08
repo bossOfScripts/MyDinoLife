@@ -8,7 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 -- ===================== KEY SYSTEM CONFIG =====================
-local CorrectKey = "release67" -- ВСТАВТЕ СЮДИ ВАШ АКТУАЛЬНИЙ КЛЮЧ
+local CorrectKey = "test12345" -- ВСТАВТЕ СЮДИ ВАШ АКТУАЛЬНИЙ КЛЮЧ
 local DiscordLink = "https://discord.gg/N8VDYjAhSz"
 local KeyFileName = "MyDinoLife_SavedKey.txt"
 
