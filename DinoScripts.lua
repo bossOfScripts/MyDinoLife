@@ -1146,17 +1146,28 @@ end
 -- ===================== CHECK KEY / WHITELIST LOGIC =====================
 local isWhitelisted = WhitelistedIDs[LocalPlayer.UserId] == true
 
+if isWhitelisted then
+    LoadMainScript()
+    return
+end
+
 local isSavedKeyValid = false
+
 pcall(function()
     if isfile and readfile and isfile(KeyFileName) then
         local saved = readfile(KeyFileName)
-        if saved == CorrectKey then
+
+        if saved and saved == CorrectKey then
             isSavedKeyValid = true
+        else
+            if delfile then
+                delfile(KeyFileName)
+            end
         end
     end
 end)
 
-if isWhitelisted or isSavedKeyValid then
+if isSavedKeyValid then
     LoadMainScript()
     return
 end
