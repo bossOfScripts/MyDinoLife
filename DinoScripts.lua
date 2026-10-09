@@ -975,16 +975,19 @@ local function LoadMainScript()
                 container.Parent = item
 
                 local hl = Instance.new("Highlight")
-                hl.FillColor = Color3.fromRGB(255, 140, 0)
+                hl.Name = "FoodHL"
+                hl.FillTransparency = 0.4
+                hl.OutlineTransparency = 0
+                hl.FillColor = orbColor
                 hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                hl.FillTransparency = 0.3
                 hl.Adornee = item
                 hl.Parent = container
 
                 local bb = Instance.new("BillboardGui")
+                bb.Name = "FoodText"
                 bb.AlwaysOnTop = true
                 bb.Size = UDim2.new(0, 120, 0, 30)
-                bb.StudsOffset = Vector3.new(0, 2, 0)
+                bb.StudsOffset = Vector3.new(0, 1.5, 0)
                 bb.Adornee = targetPart
                 bb.Parent = container
 
@@ -1017,14 +1020,15 @@ local function LoadMainScript()
         Tooltip = "Highlights Halloween Candies in Workspace.Food" 
     }):OnChanged(updateCandyESP)
 
-    -- ===================== AUTO FARM CANDY =====================
+    -- ===================== AUTO FARM CANDY & PUMPKINS =====================
     local CandyFarmBox = Tabs.Halloween:AddRightGroupbox('<font color="#FFA500">Auto Farm</font>')
 
     CandyFarmBox:AddLabel('<font color="#FF0000">Recommend to use small dinosaurs and low speed</font>')
 
     local autoFarmCandyEnabled = false
     local candyFarmSpeed = 20
-    local currentCandyTarget = nil
+    local currentItemTarget = nil
+    local isPumpkinTarget = false
 
     CandyFarmBox:AddToggle("AutoFarmCandy", {
         Text = "Auto Farm Candy",
@@ -1036,6 +1040,21 @@ local function LoadMainScript()
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then
             hum.PlatformStand = v
+        end
+        if not v then
+            currentItemTarget = nil
+            isPumpkinTarget = false
+        end
+    end)
+
+    CandyFarmBox:AddToggle("FarmPumpkins", {
+        Text = "Farm Pumpkins",
+        Default = false,
+        Tooltip = "Pulls you to purple pumpkins (Requires Auto Farm Candy)"
+    }):OnChanged(function(v)
+        if not v and isPumpkinTarget then
+            currentItemTarget = nil
+            isPumpkinTarget = false
         end
     end)
 
@@ -1049,6 +1068,32 @@ local function LoadMainScript()
     }):OnChanged(function(v)
         candyFarmSpeed = v
     end)
+
+    -- Helper functions for pumpkins and parts
+    local function getPumpkinsToScan()
+        local list = {}
+        local purpleFolder = Workspace:FindFirstChild("PurplePumpkins")
+        if purpleFolder then
+            for _, child in ipairs(purpleFolder:GetChildren()) do
+                table.insert(list, child)
+            end
+        end
+        for _, desc in ipairs(Workspace:GetDescendants()) do
+            if desc.Name == "PurplePumpkin" then
+                table.insert(list, desc)
+            end
+        end
+        return list
+    end
+
+    local function getPartFromItem(item)
+        if item:IsA("BasePart") then
+            return item
+        elseif item:IsA("Model") then
+            return item.PrimaryPart or item:FindFirstChild("HumanoidRootPart") or item:FindFirstChildWhichIsA("BasePart", true)
+        end
+        return nil
+    end
 
     -- Bypass & Movement Logic
     RunService.Stepped:Connect(function()
@@ -1070,36 +1115,88 @@ local function LoadMainScript()
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            if not currentCandyTarget or not currentCandyTarget.Parent then
+            local farmPumpkinsEnabled = Toggles.FarmPumpkins and Toggles.FarmPumpkins.Value
+
+            -- Якщо гарбуз вимкнули в налаштуваннях, а ми фармили його — скидаємо ціль
+            if isPumpkinTarget and not farmPumpkinsEnabled then
+                currentItemTarget = nil
+                isPumpkinTarget = false
+            end
+
+            -- Якщо ціль — гарбуз і він існує, залишаємось у ньому доки він не зникне
+            if currentItemTarget and currentItemTarget.Parent and isPumpkinTarget then
+                local targetPos = currentItemTarget.Position
+                if targetPos.Y < -15 or targetPos.Y > 45 then
+                    currentItemTarget = nil
+                    isPumpkinTarget = false
+                else
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    local dist = (targetPos - hrp.Position).Magnitude
+                    if dist > 3 then
+                        local dir = (targetPos - hrp.Position).Unit
+                        hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
+                    else
+                        -- Стоїмо всередині гарбуза до його зникнення
+                        hrp.CFrame = CFrame.new(targetPos)
+                    end
+                    return
+                end
+            end
+
+            -- Пошук нової цілі, якщо поточної немає
+            if not currentItemTarget or not currentItemTarget.Parent then
+                local closest = nil
+                local minDist = math.huge
+                local foundIsPumpkin = false
+
+                -- 1. Шукаємо цукерки у Workspace.Food
                 local foodFolder = Workspace:FindFirstChild("Food")
                 if foodFolder then
-                    local closest = nil
-                    local minDist = math.huge
                     for _, item in ipairs(foodFolder:GetChildren()) do
                         if checkIsCandy(item) then
-                            local part = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
+                            local part = getPartFromItem(item)
                             if part then
                                 local posY = part.Position.Y
-                                -- ПЕРЕВІРКА КООРДИНАТ ПО ОСІ Y
                                 if posY >= -15 and posY <= 45 then
                                     local dist = (part.Position - hrp.Position).Magnitude
                                     if dist < minDist then
                                         minDist = dist
                                         closest = part
+                                        foundIsPumpkin = false
                                     end
                                 end
                             end
                         end
                     end
-                    currentCandyTarget = closest
                 end
+
+                -- 2. Шукаємо гарбузи, якщо увімкнено FarmPumpkins
+                if farmPumpkinsEnabled then
+                    for _, item in ipairs(getPumpkinsToScan()) do
+                        local part = getPartFromItem(item)
+                        if part then
+                            local posY = part.Position.Y
+                            if posY >= -15 and posY <= 45 then
+                                local dist = (part.Position - hrp.Position).Magnitude
+                                if dist < minDist then
+                                    minDist = dist
+                                    closest = part
+                                    foundIsPumpkin = true
+                                end
+                            end
+                        end
+                    end
+                end
+
+                currentItemTarget = closest
+                isPumpkinTarget = foundIsPumpkin
             end
 
-            if currentCandyTarget then
-                local targetPos = currentCandyTarget.Position
-                -- ДОДАТКОВА ПЕРЕВІРКА, ЯКЩО ЦІЛЬ ВИЙШЛА ЗА МЕЖІ ПО Y
+            if currentItemTarget then
+                local targetPos = currentItemTarget.Position
                 if targetPos.Y < -15 or targetPos.Y > 45 then
-                    currentCandyTarget = nil
+                    currentItemTarget = nil
+                    isPumpkinTarget = false
                 else
                     hrp.AssemblyLinearVelocity = Vector3.zero
                     local dist = (targetPos - hrp.Position).Magnitude
@@ -1108,10 +1205,17 @@ local function LoadMainScript()
                         local dir = (targetPos - hrp.Position).Unit
                         hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
                     else
-                        currentCandyTarget = nil
+                        if isPumpkinTarget then
+                            hrp.CFrame = CFrame.new(targetPos)
+                        else
+                            currentItemTarget = nil
+                        end
                     end
                 end
             end
+        else
+            currentItemTarget = nil
+            isPumpkinTarget = false
         end
     end)
     -- ===========================================================
