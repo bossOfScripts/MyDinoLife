@@ -975,19 +975,16 @@ local function LoadMainScript()
                 container.Parent = item
 
                 local hl = Instance.new("Highlight")
-                hl.Name = "FoodHL"
-                hl.FillTransparency = 0.4
-                hl.OutlineTransparency = 0
-                hl.FillColor = orbColor
+                hl.FillColor = Color3.fromRGB(255, 140, 0)
                 hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.FillTransparency = 0.3
                 hl.Adornee = item
                 hl.Parent = container
 
                 local bb = Instance.new("BillboardGui")
-                bb.Name = "FoodText"
                 bb.AlwaysOnTop = true
                 bb.Size = UDim2.new(0, 120, 0, 30)
-                bb.StudsOffset = Vector3.new(0, 1.5, 0)
+                bb.StudsOffset = Vector3.new(0, 2, 0)
                 bb.Adornee = targetPart
                 bb.Parent = container
 
@@ -1058,6 +1055,17 @@ local function LoadMainScript()
         end
     end)
 
+    CandyFarmBox:AddToggle("OnlyFarmPumpkins", {
+        Text = "Only farm pumpkins",
+        Default = false,
+        Tooltip = "Pulls you exclusively to pumpkins (Requires Auto Farm Candy)"
+    }):OnChanged(function(v)
+        if v then
+            currentItemTarget = nil
+            isPumpkinTarget = false
+        end
+    end)
+
     CandyFarmBox:AddSlider("CandyFarmSpeed", {
         Text = "Farm Speed",
         Default = 20,
@@ -1116,9 +1124,10 @@ local function LoadMainScript()
             if not hrp then return end
 
             local farmPumpkinsEnabled = Toggles.FarmPumpkins and Toggles.FarmPumpkins.Value
+            local onlyFarmPumpkinsEnabled = Toggles.OnlyFarmPumpkins and Toggles.OnlyFarmPumpkins.Value
 
             -- Якщо гарбуз вимкнули в налаштуваннях, а ми фармили його — скидаємо ціль
-            if isPumpkinTarget and not farmPumpkinsEnabled then
+            if isPumpkinTarget and not (farmPumpkinsEnabled or onlyFarmPumpkinsEnabled) then
                 currentItemTarget = nil
                 isPumpkinTarget = false
             end
@@ -1149,20 +1158,22 @@ local function LoadMainScript()
                 local minDist = math.huge
                 local foundIsPumpkin = false
 
-                -- 1. Шукаємо цукерки у Workspace.Food
-                local foodFolder = Workspace:FindFirstChild("Food")
-                if foodFolder then
-                    for _, item in ipairs(foodFolder:GetChildren()) do
-                        if checkIsCandy(item) then
-                            local part = getPartFromItem(item)
-                            if part then
-                                local posY = part.Position.Y
-                                if posY >= -15 and posY <= 45 then
-                                    local dist = (part.Position - hrp.Position).Magnitude
-                                    if dist < minDist then
-                                        minDist = dist
-                                        closest = part
-                                        foundIsPumpkin = false
+                -- 1. Шукаємо цукерки у Workspace.Food (якщо не увімкнено OnlyFarmPumpkins)
+                if not onlyFarmPumpkinsEnabled then
+                    local foodFolder = Workspace:FindFirstChild("Food")
+                    if foodFolder then
+                        for _, item in ipairs(foodFolder:GetChildren()) do
+                            if checkIsCandy(item) then
+                                local part = getPartFromItem(item)
+                                if part then
+                                    local posY = part.Position.Y
+                                    if posY >= -15 and posY <= 45 then
+                                        local dist = (part.Position - hrp.Position).Magnitude
+                                        if dist < minDist then
+                                            minDist = dist
+                                            closest = part
+                                            foundIsPumpkin = false
+                                        end
                                     end
                                 end
                             end
@@ -1170,8 +1181,8 @@ local function LoadMainScript()
                     end
                 end
 
-                -- 2. Шукаємо гарбузи, якщо увімкнено FarmPumpkins
-                if farmPumpkinsEnabled then
+                -- 2. Шукаємо гарбузи, якщо увімкнено FarmPumpkins або OnlyFarmPumpkins
+                if farmPumpkinsEnabled or onlyFarmPumpkinsEnabled then
                     for _, item in ipairs(getPumpkinsToScan()) do
                         local part = getPartFromItem(item)
                         if part then
