@@ -1079,10 +1079,14 @@ local function LoadMainScript()
                         if checkIsCandy(item) then
                             local part = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
                             if part then
-                                local dist = (part.Position - hrp.Position).Magnitude
-                                if dist < minDist then
-                                    minDist = dist
-                                    closest = part
+                                local posY = part.Position.Y
+                                -- ПЕРЕВІРКА КООРДИНАТ ПО ОСІ Y
+                                if posY >= -15 and posY <= 45 then
+                                    local dist = (part.Position - hrp.Position).Magnitude
+                                    if dist < minDist then
+                                        minDist = dist
+                                        closest = part
+                                    end
                                 end
                             end
                         end
@@ -1092,15 +1096,20 @@ local function LoadMainScript()
             end
 
             if currentCandyTarget then
-                hrp.AssemblyLinearVelocity = Vector3.zero
                 local targetPos = currentCandyTarget.Position
-                local dist = (targetPos - hrp.Position).Magnitude
-
-                if dist > 3 then
-                    local dir = (targetPos - hrp.Position).Unit
-                    hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
-                else
+                -- ДОДАТКОВА ПЕРЕВІРКА, ЯКЩО ЦІЛЬ ВИЙШЛА ЗА МЕЖІ ПО Y
+                if targetPos.Y < -15 or targetPos.Y > 45 then
                     currentCandyTarget = nil
+                else
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    local dist = (targetPos - hrp.Position).Magnitude
+
+                    if dist > 3 then
+                        local dir = (targetPos - hrp.Position).Unit
+                        hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
+                    else
+                        currentCandyTarget = nil
+                    end
                 end
             end
         end
