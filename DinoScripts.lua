@@ -1,5 +1,5 @@
 -- =================================================================
--- MY DINO LIFE SCRIPT HUB WITH KEY SYSTEM
+-- MY DINO LIFE SCRIPT HUB (KEY SYSTEM REMOVED)
 -- =================================================================
 
 local Players = game:GetService("Players")
@@ -7,17 +7,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- ===================== KEY SYSTEM CONFIG =====================
-local CorrectKey = "release" -- ВСТАВТЕ СЮДИ ВАШ АКТУАЛЬНИЙ КЛЮЧ
 local DiscordLink = "https://discord.gg/N8VDYjAhSz"
-local KeyFileName = "MyDinoLife_SavedKey.txt"
-
--- Список ID гравців, яким НІКОЛИ не потрібно вводити ключ:
-local WhitelistedIDs = {
-    [2399044719] = true,
-    [1561052387] = true,
-    [11734384083] = true
-}
 
 -- ===================== MAIN SCRIPT FUNCTION =====================
 local function LoadMainScript()
@@ -1027,6 +1017,96 @@ local function LoadMainScript()
         Tooltip = "Highlights Halloween Candies in Workspace.Food" 
     }):OnChanged(updateCandyESP)
 
+    -- ===================== AUTO FARM CANDY =====================
+    local CandyFarmBox = Tabs.Halloween:AddRightGroupbox('<font color="#FFA500">Auto Farm</font>')
+
+    CandyFarmBox:AddLabel('<font color="#FF0000">Recommend to use small dinosaurs and low speed</font>')
+
+    local autoFarmCandyEnabled = false
+    local candyFarmSpeed = 20
+    local currentCandyTarget = nil
+
+    CandyFarmBox:AddToggle("AutoFarmCandy", {
+        Text = "Auto Farm Candy",
+        Default = false,
+        Tooltip = "Safely pulls you towards the nearest candy."
+    }):OnChanged(function(v)
+        autoFarmCandyEnabled = v
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = v
+        end
+    end)
+
+    CandyFarmBox:AddSlider("CandyFarmSpeed", {
+        Text = "Farm Speed",
+        Default = 20,
+        Min = 10,
+        Max = 50,
+        Rounding = 0,
+        Tooltip = "Speed of pulling to the candy"
+    }):OnChanged(function(v)
+        candyFarmSpeed = v
+    end)
+
+    -- Bypass & Movement Logic
+    RunService.Stepped:Connect(function()
+        if autoFarmCandyEnabled then
+            local char = LocalPlayer.Character
+            if char then
+                for _, p in ipairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") and p.CanCollide then
+                        p.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+
+    RunService.Heartbeat:Connect(function(dt)
+        if autoFarmCandyEnabled then
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            if not currentCandyTarget or not currentCandyTarget.Parent then
+                local foodFolder = Workspace:FindFirstChild("Food")
+                if foodFolder then
+                    local closest = nil
+                    local minDist = math.huge
+                    for _, item in ipairs(foodFolder:GetChildren()) do
+                        if checkIsCandy(item) then
+                            local part = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
+                            if part then
+                                local dist = (part.Position - hrp.Position).Magnitude
+                                if dist < minDist then
+                                    minDist = dist
+                                    closest = part
+                                end
+                            end
+                        end
+                    end
+                    currentCandyTarget = closest
+                end
+            end
+
+            if currentCandyTarget then
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                local targetPos = currentCandyTarget.Position
+                local dist = (targetPos - hrp.Position).Magnitude
+
+                if dist > 3 then
+                    local dir = (targetPos - hrp.Position).Unit
+                    hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
+                else
+                    currentCandyTarget = nil
+                end
+            end
+        end
+    end)
+    -- ===========================================================
+
     local HalloweenEnemiesBox = Tabs.Halloween:AddRightGroupbox('<font color="#FFA500">Halloween Enemies</font>')
 
     HalloweenEnemiesBox:AddToggle("EnemiesESP", { Text = '<font color="#FFA500">ESP Enemies</font>', Default = false })
@@ -1143,212 +1223,5 @@ local function LoadMainScript()
     Library:Notify("My Dino Life Loaded Successfully!", 3)
 end
 
--- ===================== CHECK KEY / WHITELIST LOGIC =====================
-local isWhitelisted = WhitelistedIDs[LocalPlayer.UserId] == true
-
-if isWhitelisted then
-    LoadMainScript()
-    return
-end
-
-local isSavedKeyValid = false
-
-pcall(function()
-    if isfile and readfile and isfile(KeyFileName) then
-        local saved = readfile(KeyFileName)
-
-        if saved and saved == CorrectKey then
-            isSavedKeyValid = true
-        else
-            if delfile then
-                delfile(KeyFileName)
-            end
-        end
-    end
-end)
-
-if isSavedKeyValid then
-    LoadMainScript()
-    return
-end
-
--- ===================== KEY GUI CREATION =====================
-local parentGui = (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
-
-local KeyGui = Instance.new("ScreenGui")
-KeyGui.Name = "MyDinoLife_KeySystem"
-KeyGui.ResetOnSpawn = false
-KeyGui.Parent = parentGui
-
-local MainFrame = Instance.new("Frame", KeyGui)
-MainFrame.Size = UDim2.new(0, 360, 0, 240)
-MainFrame.Position = UDim2.new(0.5, -180, 0.5, -120)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
-MainFrame.BackgroundTransparency = 1
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Color = Color3.fromRGB(60, 60, 80)
-MainStroke.Thickness = 1.5
-MainStroke.Transparency = 1
-
--- TOPBAR (DRAGGABLE)
-local Topbar = Instance.new("Frame", MainFrame)
-Topbar.Size = UDim2.new(1, 0, 0, 35)
-Topbar.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
-Topbar.BorderSizePixel = 0
-Instance.new("UICorner", Topbar).CornerRadius = UDim.new(0, 10)
-
-local TopbarFix = Instance.new("Frame", Topbar)
-TopbarFix.Size = UDim2.new(1, 0, 0.5, 0)
-TopbarFix.Position = UDim2.new(0, 0, 0.5, 0)
-TopbarFix.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
-TopbarFix.BorderSizePixel = 0
-
-local Title = Instance.new("TextLabel", Topbar)
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "Key System — My Dino Life"
-Title.TextColor3 = Color3.fromRGB(240, 240, 240)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 13
-Title.TextXAlignment = Enum.TextXAlignment.Left
-
-local CloseBtn = Instance.new("TextButton", Topbar)
-CloseBtn.Size = UDim2.new(0, 35, 1, 0)
-CloseBtn.Position = UDim2.new(1, -35, 0, 0)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 14
-
-CloseBtn.MouseEnter:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80) end)
-CloseBtn.MouseLeave:Connect(function() CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 180) end)
-CloseBtn.MouseButton1Click:Connect(function() KeyGui:Destroy() end)
-
--- DRAGGING LOGIC
-local dragging, dragInput, mousePos, framePos
-Topbar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        mousePos = input.Position
-        framePos = MainFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
-    end
-end)
-Topbar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - mousePos
-        MainFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-    end
-end)
-
--- INPUT BOX
-local KeyInput = Instance.new("TextBox", MainFrame)
-KeyInput.Size = UDim2.new(0.88, 0, 0, 42)
-KeyInput.Position = UDim2.new(0.06, 0, 0.25, 0)
-KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeyInput.PlaceholderText = "Enter Key Here..."
-KeyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
-KeyInput.Font = Enum.Font.GothamMedium
-KeyInput.TextSize = 13
-KeyInput.Text = ""
-KeyInput.ClearTextOnFocus = false
-Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
-
-local InputStroke = Instance.new("UIStroke", KeyInput)
-InputStroke.Color = Color3.fromRGB(50, 50, 65)
-InputStroke.Thickness = 1
-
--- STATUS LABEL
-local StatusLabel = Instance.new("TextLabel", MainFrame)
-StatusLabel.Size = UDim2.new(0.88, 0, 0, 22)
-StatusLabel.Position = UDim2.new(0.06, 0, 0.48, 0)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = ""
-StatusLabel.Font = Enum.Font.GothamBold
-StatusLabel.TextSize = 12
-
--- BUTTONS CONTAINER
-local ConfirmBtn = Instance.new("TextButton", MainFrame)
-ConfirmBtn.Size = UDim2.new(0.42, 0, 0, 38)
-ConfirmBtn.Position = UDim2.new(0.06, 0, 0.68, 0)
-ConfirmBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69) -- Green
-ConfirmBtn.Text = "Confirm"
-ConfirmBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ConfirmBtn.Font = Enum.Font.GothamBold
-ConfirmBtn.TextSize = 13
-Instance.new("UICorner", ConfirmBtn).CornerRadius = UDim.new(0, 8)
-
-local GetKeyBtn = Instance.new("TextButton", MainFrame)
-GetKeyBtn.Size = UDim2.new(0.42, 0, 0, 38)
-GetKeyBtn.Position = UDim2.new(0.52, 0, 0.68, 0)
-GetKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 122, 255) -- Blue
-GetKeyBtn.Text = "Get Key"
-GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-GetKeyBtn.Font = Enum.Font.GothamBold
-GetKeyBtn.TextSize = 13
-Instance.new("UICorner", GetKeyBtn).CornerRadius = UDim.new(0, 8)
-
--- ANIMATED OPENING
-TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-    BackgroundTransparency = 0,
-    Position = UDim2.new(0.5, -180, 0.5, -120)
-}):Play()
-TweenService:Create(MainStroke, TweenInfo.new(0.4), {Transparency = 0}):Play()
-
--- BUTTON HANDLERS
-GetKeyBtn.MouseButton1Click:Connect(function()
-    local setclip = setclipboard or toclipboard or set_clipboard
-    if setclip then
-        setclip(DiscordLink)
-        StatusLabel.TextColor3 = Color3.fromRGB(0, 191, 255)
-        StatusLabel.Text = "Discord link copied to clipboard!"
-    else
-        StatusLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
-        StatusLabel.Text = "Clipboard not supported!"
-    end
-end)
-
-ConfirmBtn.MouseButton1Click:Connect(function()
-    local enteredKey = KeyInput.Text
-    if enteredKey == CorrectKey then
-        StatusLabel.TextColor3 = Color3.fromRGB(46, 204, 113)
-        StatusLabel.Text = "Valid Key. Executing..."
-        
-        pcall(function()
-            if writefile then
-                writefile(KeyFileName, enteredKey)
-            end
-        end)
-        
-        task.wait(0.8)
-        
-        local closeTween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            BackgroundTransparency = 1,
-            Size = UDim2.new(0, 320, 0, 200),
-            Position = UDim2.new(0.5, -160, 0.5, -100)
-        })
-        TweenService:Create(MainStroke, TweenInfo.new(0.3), {Transparency = 1}):Play()
-        closeTween:Play()
-        closeTween.Completed:Wait()
-        
-        KeyGui:Destroy()
-        LoadMainScript()
-    else
-        StatusLabel.TextColor3 = Color3.fromRGB(231, 76, 60)
-        StatusLabel.Text = "Wrong Key."
-    end
-end)
+-- ===================== LAUNCH =====================
+LoadMainScript()
