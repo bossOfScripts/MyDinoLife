@@ -1175,6 +1175,7 @@ local function LoadMainScript()
                 if currentItemTarget then
                     hrp.AssemblyLinearVelocity = Vector3.zero
                     local targetPos = currentItemTarget.Position
+                    targetPos = Vector3.new(targetPos.X, math.max(targetPos.Y, 20), targetPos.Z)
                     local dist = (targetPos - hrp.Position).Magnitude
                     if dist > 3 then
                         local dir = (targetPos - hrp.Position).Unit
@@ -1199,6 +1200,7 @@ local function LoadMainScript()
             if isPumpkinTarget then
                 if currentItemTarget and currentItemTarget.Parent then
                     local targetPos = currentItemTarget.Position
+                    targetPos = Vector3.new(targetPos.X, math.max(targetPos.Y, 20), targetPos.Z)
                     if targetPos.Y < 5 or targetPos.Y > 45 then
                         currentItemTarget = nil
                         isPumpkinTarget = false
@@ -1225,7 +1227,8 @@ local function LoadMainScript()
                     if tick() < pumpkinHoldUntil then
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         if lastPumpkinPos then
-                            hrp.CFrame = CFrame.new(lastPumpkinPos)
+                            local clampedPumpkinPos = Vector3.new(lastPumpkinPos.X, math.max(lastPumpkinPos.Y, 20), lastPumpkinPos.Z)
+                            hrp.CFrame = CFrame.new(clampedPumpkinPos)
                         end
                         return
                     else
@@ -1303,6 +1306,7 @@ local function LoadMainScript()
 
             if currentItemTarget then
                 local targetPos = currentItemTarget.Position
+                targetPos = Vector3.new(targetPos.X, math.max(targetPos.Y, 20), targetPos.Z)
                 local checkYMin = isPumpkinTarget and 5 or -15
                 local checkYMax = 45
                 if targetPos.Y < checkYMin or targetPos.Y > checkYMax then
@@ -1317,7 +1321,8 @@ local function LoadMainScript()
                         hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
                     else
                         if isPumpkinTarget then
-                            hrp.CFrame = CFrame.new(targetPos)
+                            local clampedPos = Vector3.new(targetPos.X, math.max(targetPos.Y, 20), targetPos.Z)
+                            hrp.CFrame = CFrame.new(clampedPos)
                             lastPumpkinPos = targetPos
                         else
                             currentItemTarget = nil
