@@ -1136,7 +1136,7 @@ local function LoadMainScript()
             local farmPumpkinsEnabled = Toggles.FarmPumpkins and Toggles.FarmPumpkins.Value
             local onlyFarmPumpkinsEnabled = Toggles.OnlyFarmPumpkins and Toggles.OnlyFarmPumpkins.Value
 
-            -- Режим збору цукерок у радіусі 25 стадів після знищення гарбуза
+            -- Режим збору цукерок у радіусі 50 стадів після знищення гарбуза
             if collectingNearbyCandies then
                 if not lastPumpkinPos then
                     lastPumpkinPos = hrp.Position
@@ -1144,7 +1144,7 @@ local function LoadMainScript()
                 if not currentItemTarget or not currentItemTarget.Parent then
                     local foodFolder = Workspace:FindFirstChild("Food")
                     local closest = nil
-                    local minDist = 25 -- радіус 25 стадів
+                    local minDist = 50 -- радіус 50 стадів
                     if foodFolder then
                         for _, item in ipairs(foodFolder:GetChildren()) do
                             if checkIsCandy(item) then
@@ -1153,7 +1153,7 @@ local function LoadMainScript()
                                     local posY = part.Position.Y
                                     if posY >= -15 and posY <= 45 then
                                         local distToPumpkin = (part.Position - lastPumpkinPos).Magnitude
-                                        if distToPumpkin <= 25 then
+                                        if distToPumpkin <= 50 then
                                             local distToPlayer = (part.Position - hrp.Position).Magnitude
                                             if distToPlayer < minDist then
                                                 minDist = distToPlayer
@@ -1231,7 +1231,7 @@ local function LoadMainScript()
                     else
                         pumpkinHoldUntil = 0
                         isPumpkinTarget = false
-                        -- Якщо увімкнено OnlyFarmPumpkins, пропускаємо збір цукерок
+                        -- Якщо увімкнено OnlyFarmPumpkins, пропускаємо збір цукерок і йдемо до наступного гарбуза
                         if onlyFarmPumpkinsEnabled then
                             collectingNearbyCandies = false
                         else
@@ -1374,7 +1374,7 @@ local function LoadMainScript()
                 container.Name = "EnemyESPContainer"
                 container.Parent = model
 
-                val hl = Instance.new("Highlight")
+                local hl = Instance.new("Highlight")
                 hl.FillColor = Color3.fromRGB(255, 80, 0)
                 hl.OutlineColor = Color3.fromRGB(255, 255, 0)
                 hl.FillTransparency = 0.3
