@@ -1026,6 +1026,9 @@ local function LoadMainScript()
     local candyFarmSpeed = 20
     local currentItemTarget = nil
     local isPumpkinTarget = false
+    local pumpkinHoldUntil = 0
+    local lastPumpkinPos = nil
+    local collectingNearbyCandies = false
 
     CandyFarmBox:AddToggle("AutoFarmCandy", {
         Text = "Auto Farm Candy",
@@ -1041,6 +1044,9 @@ local function LoadMainScript()
         if not v then
             currentItemTarget = nil
             isPumpkinTarget = false
+            pumpkinHoldUntil = 0
+            collectingNearbyCandies = false
+            lastPumpkinPos = nil
         end
     end)
 
@@ -1052,6 +1058,8 @@ local function LoadMainScript()
         if not v and isPumpkinTarget then
             currentItemTarget = nil
             isPumpkinTarget = false
+            pumpkinHoldUntil = 0
+            collectingNearbyCandies = false
         end
     end)
 
@@ -1063,6 +1071,8 @@ local function LoadMainScript()
         if v then
             currentItemTarget = nil
             isPumpkinTarget = false
+            pumpkinHoldUntil = 0
+            collectingNearbyCandies = false
         end
     end)
 
@@ -1126,29 +1136,100 @@ local function LoadMainScript()
             local farmPumpkinsEnabled = Toggles.FarmPumpkins and Toggles.FarmPumpkins.Value
             local onlyFarmPumpkinsEnabled = Toggles.OnlyFarmPumpkins and Toggles.OnlyFarmPumpkins.Value
 
-            -- Якщо гарбуз вимкнули в налаштуваннях, а ми фармили його — скидаємо ціль
-            if isPumpkinTarget and not (farmPumpkinsEnabled or onlyFarmPumpkinsEnabled) then
-                currentItemTarget = nil
-                isPumpkinTarget = false
-            end
+            -- Режим збору цукерок у радіусі 25 стадів після знищення гарбуза
+            if collectingNearbyCandies then
+                if not currentItemTarget or not currentItemTarget.Parent then
+                    local foodFolder = Workspace:FindFirstChild("Food")
+                    local closest = nil
+                    local minDist = 25 -- радіус 25 стадів
+                    if foodFolder then
+                        for _, item in ipairs(foodFolder:GetChildren()) do
+                            if checkIsCandy(item) then
+                                local part = getPartFromItem(item)
+                                if part then
+                                    local posY = part.Position.Y
+                                    if posY >= -15 and posY <= 45 then
+                                        local distToPumpkin = (part.Position - lastPumpkinPos).Magnitude
+                                        if distToPumpkin <= 25 then
+                                            local distToPlayer = (part.Position - hrp.Position).Magnitude
+                                            if distToPlayer < minDist then
+                                                minDist = distToPlayer
+                                                closest = part
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    currentItemTarget = closest
+                    if not currentItemTarget then
+                        collectingNearbyCandies = false
+                        lastPumpkinPos = nil
+                    end
+                end
 
-            -- Якщо ціль — гарбуз і він існує, залишаємось у ньому доки він не зникне
-            if currentItemTarget and currentItemTarget.Parent and isPumpkinTarget then
-                local targetPos = currentItemTarget.Position
-                if targetPos.Y < -15 or targetPos.Y > 45 then
-                    currentItemTarget = nil
-                    isPumpkinTarget = false
-                else
+                if currentItemTarget then
                     hrp.AssemblyLinearVelocity = Vector3.zero
+                    local targetPos = currentItemTarget.Position
                     local dist = (targetPos - hrp.Position).Magnitude
                     if dist > 3 then
                         local dir = (targetPos - hrp.Position).Unit
                         hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
                     else
-                        -- Стоїмо всередині гарбуза до його зникнення
-                        hrp.CFrame = CFrame.new(targetPos)
+                        currentItemTarget = nil
                     end
-                    return
+                end
+                return
+            end
+
+            -- Якщо гарбуз вимкнули в налаштуваннях, а ми фармили його — скидаємо ціль
+            if isPumpkinTarget and not (farmPumpkinsEnabled or onlyFarmPumpkinsEnabled) then
+                currentItemTarget = nil
+                isPumpkinTarget = false
+                pumpkinHoldUntil = 0
+                collectingNearbyCandies = false
+            end
+
+            -- Якщо ціль — гарбуз
+            if isPumpkinTarget then
+                if currentItemTarget and currentItemTarget.Parent then
+                    local targetPos = currentItemTarget.Position
+                    if targetPos.Y < 5 or targetPos.Y > 45 then
+                        currentItemTarget = nil
+                        isPumpkinTarget = false
+                        pumpkinHoldUntil = 0
+                    else
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        local dist = (targetPos - hrp.Position).Magnitude
+                        lastPumpkinPos = targetPos
+                        if dist > 3 then
+                            local dir = (targetPos - hrp.Position).Unit
+                            hrp.CFrame = CFrame.new(hrp.Position + (dir * candyFarmSpeed * dt), targetPos)
+                        else
+                            hrp.CFrame = CFrame.new(targetPos)
+                        end
+                        return
+                    end
+                else
+                    -- Гарбуз зник (зламався)! Утримуємо гравця ще 2.5 секунди
+                    if pumpkinHoldUntil == 0 then
+                        pumpkinHoldUntil = tick() + 2.5
+                    end
+
+                    if tick() < pumpkinHoldUntil then
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                        if lastPumpkinPos then
+                            hrp.CFrame = CFrame.new(lastPumpkinPos)
+                        end
+                        return
+                    else
+                        pumpkinHoldUntil = 0
+                        isPumpkinTarget = false
+                        collectingNearbyCandies = true
+                        currentItemTarget = nil
+                        return
+                    end
                 end
             end
 
@@ -1181,13 +1262,13 @@ local function LoadMainScript()
                     end
                 end
 
-                -- 2. Шукаємо гарбузи, якщо увімкнено FarmPumpkins або OnlyFarmPumpkins
+                -- 2. Шукаємо гарбузи ( Y від 5 до 45 )
                 if farmPumpkinsEnabled or onlyFarmPumpkinsEnabled then
                     for _, item in ipairs(getPumpkinsToScan()) do
                         local part = getPartFromItem(item)
                         if part then
                             local posY = part.Position.Y
-                            if posY >= -15 and posY <= 45 then
+                            if posY >= 5 and posY <= 45 then
                                 local dist = (part.Position - hrp.Position).Magnitude
                                 if dist < minDist then
                                     minDist = dist
@@ -1201,11 +1282,16 @@ local function LoadMainScript()
 
                 currentItemTarget = closest
                 isPumpkinTarget = foundIsPumpkin
+                if foundIsPumpkin then
+                    pumpkinHoldUntil = 0
+                end
             end
 
             if currentItemTarget then
                 local targetPos = currentItemTarget.Position
-                if targetPos.Y < -15 or targetPos.Y > 45 then
+                local checkYMin = isPumpkinTarget and 5 or -15
+                local checkYMax = 45
+                if targetPos.Y < checkYMin or targetPos.Y > checkYMax then
                     currentItemTarget = nil
                     isPumpkinTarget = false
                 else
@@ -1218,6 +1304,7 @@ local function LoadMainScript()
                     else
                         if isPumpkinTarget then
                             hrp.CFrame = CFrame.new(targetPos)
+                            lastPumpkinPos = targetPos
                         else
                             currentItemTarget = nil
                         end
@@ -1227,6 +1314,9 @@ local function LoadMainScript()
         else
             currentItemTarget = nil
             isPumpkinTarget = false
+            pumpkinHoldUntil = 0
+            collectingNearbyCandies = false
+            lastPumpkinPos = nil
         end
     end)
     -- ===========================================================
