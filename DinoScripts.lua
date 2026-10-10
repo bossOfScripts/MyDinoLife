@@ -1138,6 +1138,9 @@ local function LoadMainScript()
 
             -- Режим збору цукерок у радіусі 25 стадів після знищення гарбуза
             if collectingNearbyCandies then
+                if not lastPumpkinPos then
+                    lastPumpkinPos = hrp.Position
+                end
                 if not currentItemTarget or not currentItemTarget.Parent then
                     local foodFolder = Workspace:FindFirstChild("Food")
                     local closest = nil
@@ -1189,6 +1192,7 @@ local function LoadMainScript()
                 isPumpkinTarget = false
                 pumpkinHoldUntil = 0
                 collectingNearbyCandies = false
+                lastPumpkinPos = nil
             end
 
             -- Якщо ціль — гарбуз
@@ -1199,6 +1203,7 @@ local function LoadMainScript()
                         currentItemTarget = nil
                         isPumpkinTarget = false
                         pumpkinHoldUntil = 0
+                        lastPumpkinPos = nil
                     else
                         hrp.AssemblyLinearVelocity = Vector3.zero
                         local dist = (targetPos - hrp.Position).Magnitude
@@ -1226,8 +1231,14 @@ local function LoadMainScript()
                     else
                         pumpkinHoldUntil = 0
                         isPumpkinTarget = false
-                        collectingNearbyCandies = true
+                        -- Якщо увімкнено OnlyFarmPumpkins, пропускаємо збір цукерок
+                        if onlyFarmPumpkinsEnabled then
+                            collectingNearbyCandies = false
+                        else
+                            collectingNearbyCandies = true
+                        end
                         currentItemTarget = nil
+                        lastPumpkinPos = nil
                         return
                     end
                 end
@@ -1284,6 +1295,9 @@ local function LoadMainScript()
                 isPumpkinTarget = foundIsPumpkin
                 if foundIsPumpkin then
                     pumpkinHoldUntil = 0
+                    if closest then
+                        lastPumpkinPos = closest.Position
+                    end
                 end
             end
 
@@ -1360,7 +1374,7 @@ local function LoadMainScript()
                 container.Name = "EnemyESPContainer"
                 container.Parent = model
 
-                local hl = Instance.new("Highlight")
+                val hl = Instance.new("Highlight")
                 hl.FillColor = Color3.fromRGB(255, 80, 0)
                 hl.OutlineColor = Color3.fromRGB(255, 255, 0)
                 hl.FillTransparency = 0.3
