@@ -28,7 +28,6 @@ local function LoadMainScript()
 
     local RunService = getSvc("RunService")
     local HttpService = getSvc("HttpService")
-    local ContentProvider = getSvc("ContentProvider")
     local Workspace = getSvc("Workspace")
 
     local Camera = Workspace.CurrentCamera
@@ -71,7 +70,8 @@ local function LoadMainScript()
         Player = Window:AddTab("Player", "user"),
         Esp = Window:AddTab("ESP", "eye"),
         Halloween = Window:AddTab('<font color="#FFA500">Halloween</font>', "ghost"),
-        Discord = Window:AddTab('<font color="#00BFFF">Discord</font>', "message-circle")
+        Discord = Window:AddTab('<font color="#00BFFF">Discord</font>', "message-circle"),
+        Configs = Window:AddTab("Configs", "settings")
     }
 
     -- ===================== TAB: INFO =====================
@@ -92,7 +92,7 @@ local function LoadMainScript()
             return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420) 
         end)
         if ok and content then
-            AvatarImage.Image = content; pcall(function() ContentProvider:PreloadAsync({AvatarImage}) end)
+            AvatarImage.Image = content
         else
             AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
         end
@@ -310,6 +310,39 @@ local function LoadMainScript()
         Rounding = 0, 
         Tooltip = "Adjust your flight speed" 
     })
+
+    -- SPIN BOT GROUPBOX
+    local SpinBox = Tabs.Player:AddRightGroupbox("Spin Bot (360° Attack)")
+
+    SpinBox:AddToggle("SpinBot", {
+        Text = "Spin Bot",
+        Default = false,
+        Tooltip = "Spins your character for 360-degree attacks"
+    })
+
+    SpinBox:AddSlider("SpinSpeed", {
+        Text = "Spin Speed",
+        Default = 5,
+        Min = 1,
+        Max = 10,
+        Rounding = 0,
+        Tooltip = "Speed of rotation (1 to 10)"
+    })
+
+    local spinAngle = 0
+    RunService.Heartbeat:Connect(function(dt)
+        local spinEnabled = Toggles.SpinBot and Toggles.SpinBot.Value
+        if spinEnabled then
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                local speedVal = Options.SpinSpeed and Options.SpinSpeed.Value or 5
+                spinAngle = (spinAngle + speedVal * dt * 6) % (math.pi * 2)
+                hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, spinAngle, 0)
+            end
+        end
+    end)
 
     -- ===================== SURVIVAL & UTILITY =====================
     local SurvivalBox = Tabs.Player:AddRightGroupbox("Survival & Utility")
@@ -1144,7 +1177,7 @@ local function LoadMainScript()
                 if not currentItemTarget or not currentItemTarget.Parent then
                     local foodFolder = Workspace:FindFirstChild("Food")
                     local closest = nil
-                    local minDist = 50 -- радіус 50 стадів
+                    local minDist = 50
                     if foodFolder then
                         for _, item in ipairs(foodFolder:GetChildren()) do
                             if checkIsCandy(item) then
@@ -1219,7 +1252,6 @@ local function LoadMainScript()
                         return
                     end
                 else
-                    -- Гарбуз зник (зламався)! Утримуємо гравця ще 2.5 секунди
                     if pumpkinHoldUntil == 0 then
                         pumpkinHoldUntil = tick() + 2.5
                     end
@@ -1234,7 +1266,6 @@ local function LoadMainScript()
                     else
                         pumpkinHoldUntil = 0
                         isPumpkinTarget = false
-                        -- Якщо увімкнено OnlyFarmPumpkins, пропускаємо збір цукерок і йдемо до наступного гарбуза
                         if onlyFarmPumpkinsEnabled then
                             collectingNearbyCandies = false
                         else
@@ -1253,7 +1284,6 @@ local function LoadMainScript()
                 local minDist = math.huge
                 local foundIsPumpkin = false
 
-                -- 1. Шукаємо цукерки у Workspace.Food (якщо не увімкнено OnlyFarmPumpkins)
                 if not onlyFarmPumpkinsEnabled then
                     local foodFolder = Workspace:FindFirstChild("Food")
                     if foodFolder then
@@ -1276,7 +1306,6 @@ local function LoadMainScript()
                     end
                 end
 
-                -- 2. Шукаємо гарбузи ( Y від 5 до 45 )
                 if farmPumpkinsEnabled or onlyFarmPumpkinsEnabled then
                     for _, item in ipairs(getPumpkinsToScan()) do
                         local part = getPartFromItem(item)
@@ -1432,6 +1461,17 @@ local function LoadMainScript()
         end
     end)
 
+    -- ===================== TAB: CONFIGS =====================
+    ThemeManager:SetLibrary(Library)
+    SaveManager:SetLibrary(Library)
+    ThemeManager:SetFolder('MyDinoLife')
+    SaveManager:SetFolder('MyDinoLife/Configs')
+
+    SaveManager:BuildConfigSection(Tabs.Configs)
+    ThemeManager:BuildConfigSection(Tabs.Configs)
+
+    SaveManager:LoadAutoloadConfig()
+
     -- MAIN LOOP
     task.spawn(function()
         while true do
@@ -1445,12 +1485,6 @@ local function LoadMainScript()
             end)
         end
     end)
-
-    -- ===================== UI INITIALIZATION =====================
-    ThemeManager:SetLibrary(Library)
-    SaveManager:SetLibrary(Library)
-    ThemeManager:SetFolder('MyDinoLife')
-    SaveManager:SetFolder('MyDinoLife/Configs')
 
     Library:SetWatermark("My Dino Life | Premium")
     Library:Notify("My Dino Life Loaded Successfully!", 3)
