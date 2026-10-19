@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 local DiscordLink = "https://discord.gg/N8VDYjAhSz"
@@ -82,27 +83,7 @@ local function LoadMainScript()
 
         -- ===================== TAB: INFO =====================
         local UserBox = Tabs.Info:AddLeftGroupbox("User Profile")
-        local AvatarContainer = Instance.new("Frame", UserBox.Container)
-        AvatarContainer.Size = UDim2.new(1, 0, 0, 200)
-        AvatarContainer.BackgroundTransparency = 1
-
-        local AvatarImage = Instance.new("ImageLabel", AvatarContainer)
-        AvatarImage.Size = UDim2.new(0, 180, 0, 180)
-        AvatarImage.Position = UDim2.new(0.5, -90, 0.5, -90)
-        AvatarImage.BackgroundTransparency = 1
-        Instance.new("UICorner", AvatarImage).CornerRadius = UDim.new(0, 10)
-        Instance.new("UIStroke", AvatarImage).Color = Color3.fromRGB(50, 50, 50)
-
-        task.spawn(function()
-            local ok, content = pcall(function() 
-                return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420) 
-            end)
-            if ok and content then
-                AvatarImage.Image = content
-            else
-                AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=420&h=420"
-            end
-        end)
+        -- Аватарку повністю видалено для миттєвого завантаження
 
         local InfoBox = Tabs.Info:AddRightGroupbox("Player Information")
         InfoBox:AddLabel("Username: " .. LocalPlayer.Name)
@@ -335,13 +316,13 @@ local function LoadMainScript()
             Tooltip = "Speed of rotation (1 to 10)"
         })
 
-        -- RAPID FIRE GROUPBOX
+        -- RAPID FIRE GROUPBOX (Updated with AttackRequest Remote)
         local CombatBox = Tabs.Player:AddRightGroupbox("Combat & Attack")
 
         CombatBox:AddToggle("RapidFire", {
             Text = "Rapid Fire",
             Default = false,
-            Tooltip = "Removes attack cooldown / enables fast attack"
+            Tooltip = "Fires AttackRequest remote rapidly for fast hits"
         })
 
         local spinAngle = 0
@@ -359,18 +340,18 @@ local function LoadMainScript()
             end
         end)
 
-        -- Rapid Fire Logic Loop
+        -- Rapid Fire Fixed Loop via AttackRequest RemoteEvent
         task.spawn(function()
             while true do
-                task.wait(0.1)
+                task.wait(0.05)
                 pcall(function()
                     local rapidEnabled = Toggles.RapidFire and Toggles.RapidFire.Value
                     if rapidEnabled then
-                        local char = LocalPlayer.Character
-                        if char then
-                            local tool = char:FindFirstChildOfClass("Tool")
-                            if tool and tool:FindFirstChild("Handle") then
-                                tool:Activate()
+                        local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+                        if remotesFolder then
+                            local attackReq = remotesFolder:FindFirstChild("AttackRequest")
+                            if attackReq and attackReq:IsA("RemoteEvent") then
+                                attackReq:FireServer()
                             end
                         end
                     end
